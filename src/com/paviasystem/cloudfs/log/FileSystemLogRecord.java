@@ -1,8 +1,11 @@
 package com.paviasystem.cloudfs.log;
 
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileSystemLogRecord {
+	private static AtomicInteger timestamp2Counter = new AtomicInteger(0);
+	
 	public static enum Type {
 		WriteBytes, SetLength, Remove
 	}
@@ -19,7 +22,8 @@ public class FileSystemLogRecord {
 		return new FileSystemLogRecord(new Date(), Type.Remove, path, 0, 0, null);
 	}
 
-	Date timestamp;
+	Date timestamp1;
+	int timestamp2;
 	Type type;
 	String path;
 	long offset;
@@ -27,7 +31,8 @@ public class FileSystemLogRecord {
 	byte[] bytes;
 
 	private FileSystemLogRecord(Date timestamp, Type type, String path, long offset, long length, byte[] bytes) {
-		this.timestamp = timestamp;
+		this.timestamp1 = timestamp;
+		this.timestamp2 = timestamp2Counter.getAndIncrement();
 		this.type = type;
 		this.path = path;
 		this.offset = offset;
@@ -35,8 +40,12 @@ public class FileSystemLogRecord {
 		this.bytes = bytes;
 	}
 
-	public Date getTimestamp() {
-		return timestamp;
+	public Date getTimestamp1() {
+		return timestamp1;
+	}
+
+	public int getTimestamp2() {
+		return timestamp2;
 	}
 
 	public Type getType() {
