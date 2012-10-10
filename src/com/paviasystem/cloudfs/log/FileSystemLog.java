@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfs;
+package com.paviasystem.cloudfs.log;
 
 public interface FileSystemLog {
 	void write(String path, long offset, long len, byte[] bytes);
