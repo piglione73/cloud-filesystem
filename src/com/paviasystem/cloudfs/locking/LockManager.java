@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfs;
+package com.paviasystem.cloudfs.locking;
 
 import java.util.Date;
 
