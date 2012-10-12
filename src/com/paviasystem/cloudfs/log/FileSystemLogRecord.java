@@ -7,7 +7,7 @@ public class FileSystemLogRecord {
 	private static AtomicInteger timestamp2Counter = new AtomicInteger(0);
 	
 	public static enum Type {
-		Write, SetLength, Remove
+		Write, SetLength, Remove, CreateDirectory, RemoveDirectory
 	}
 
 	public static FileSystemLogRecord createWrite(String path, long offset, long length, byte[] bytes) {
