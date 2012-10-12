@@ -2,6 +2,7 @@ package com.paviasystem.cloudfs;
 
 import java.util.ArrayList;
 
+import com.paviasystem.cloudfs.locking.LockManager;
 import com.paviasystem.cloudfs.log.FileSystemLog;
 import com.paviasystem.cloudfs.log.FileSystemLogRecord;
 import com.paviasystem.cloudfs.log.FileSystemLogRecord.Type;
@@ -104,8 +105,38 @@ final class Engine {
 		return new ArrayList<FileSystemEntry>();
 	}
 
-	static void createDirectory(String directory, Storage storage, FileSystemLog[] logPipeline) {
-		// TODO: no operation
+	static void createDirectory(final String directory, Storage storage, final FileSystemLog[] logPipeline, LockManager lockManager) {
+		/*
+		 * A directory can be created only if it does not exist. The operation
+		 * only affects the log.
+		 * 
+		 * Make sure the parent directory exists.
+		 * 
+		 * Then, holding a lock on the parent directory, create the requested
+		 * directory.
+		 */
+		// Make sure the parent directory exists, recursively
+		if (Path.isRoot(directory)) {
+			// The root directory cannot be created: it exists implicitly
+			return;
+		} else {
+			// It is not the root directory, so it has a parent; let's make sure
+			// the parent exists
+			String parentDirectory = Path.getParent(directory);
+			createDirectory(parentDirectory, storage, logPipeline, lockManager);
+
+			// Here, we are sure all the ancestor directories exist
+			// Let's lock the parent
+			lockManager.withDirectoryLock(parentDirectory, new Runnable() {
+				@Override
+				public void run() {
+					// While holding a lock on the parent, create the requested
+					// directory
+					FileSystemLogRecord record = FileSystemLogRecord.createDirectory(directory);
+					Log.write(logPipeline);
+				}
+			});
+		}
 	}
 
 	static void deleteDirectory(String directory, Storage storage, FileSystemLog[] logPipeline) {

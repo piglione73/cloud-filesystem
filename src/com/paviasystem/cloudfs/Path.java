@@ -2,8 +2,11 @@ package com.paviasystem.cloudfs;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.junit.Test;
 
@@ -83,6 +86,38 @@ public final class Path {
 		return sb.toString();
 	}
 
+	/**
+	 * Determines if a directory is the root directory.
+	 * 
+	 * @param directory
+	 * @return
+	 */
+	public static boolean isRoot(String directory) {
+		return decompose(directory).length == 0;
+	}
+
+	/**
+	 * Determines the parent path.
+	 * 
+	 * @param path
+	 * @return The parent path, or null if the path has no parent (i.e., if it
+	 *         is the root directory)
+	 */
+	public static String getParent(String path) {
+		if (path == null)
+			return null;
+
+		String[] parts = decompose(path);
+		if (parts.length == 0) {
+			// It is root --> no parent
+			return null;
+		} else {
+			// Non-root --> the parent is calculated by dropping the last part
+			String[] parentParts = Arrays.copyOf(parts, parts.length - 1);
+			return compose(parentParts);
+		}
+	}
+
 	public static class UnitTests {
 		@Test
 		public void compose() {
@@ -140,5 +175,28 @@ public final class Path {
 			assertEquals("a/B/C DE", Path.normalize(" a/B/C DE//////"));
 		}
 
+		@Test
+		public void isRoot() {
+			assertTrue(Path.isRoot(null));
+			assertTrue(Path.isRoot(""));
+			assertTrue(Path.isRoot("  /   /   /"));
+			assertFalse(Path.isRoot("  / a  /   /"));
+			assertFalse(Path.isRoot("/a/b/"));
+			assertFalse(Path.isRoot("/a/b"));
+			assertFalse(Path.isRoot("/a"));
+			assertTrue(Path.isRoot("/"));
+		}
+
+		@Test
+		public void getParent() {
+			assertEquals(null, Path.getParent(null));
+			assertEquals(null, Path.getParent(""));
+			assertEquals(null, Path.getParent("     "));
+			assertEquals(null, Path.getParent("  /   /   "));
+			assertEquals("", Path.getParent("  / a  /   "));
+			assertEquals("b", Path.getParent(" b / a  /   "));
+			assertEquals("b/a/CC", Path.getParent(" b / a  /   CC/qwerty"));
+		}
 	}
+
 }

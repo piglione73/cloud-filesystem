@@ -2,6 +2,7 @@ package com.paviasystem.cloudfs;
 
 import java.util.ArrayList;
 
+import com.paviasystem.cloudfs.locking.LockManager;
 import com.paviasystem.cloudfs.log.FileSystemLog;
 import com.paviasystem.cloudfs.storage.Storage;
 
@@ -9,8 +10,9 @@ import com.paviasystem.cloudfs.storage.Storage;
  * The cloud filesystem object. Provides access to the cloud filesystem.
  */
 public class FileSystem {
-	private Storage storage;
-	private FileSystemLog[] logPipeline;
+	private final Storage storage;
+	private final FileSystemLog[] logPipeline;
+	private final LockManager lockManager;
 
 	/**
 	 * Tests if a file exists.
