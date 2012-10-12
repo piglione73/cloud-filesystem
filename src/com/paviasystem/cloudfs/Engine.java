@@ -100,17 +100,21 @@ final class Engine {
 	}
 
 	static ArrayList<FileSystemEntry> list(String directory, Storage storage, FileSystemLog[] logPipeline) {
+		// TODO: no operation
+		return new ArrayList<FileSystemEntry>();
 	}
 
 	static void createDirectory(String directory, Storage storage, FileSystemLog[] logPipeline) {
-		TODO;
+		// TODO: no operation
 	}
 
 	static void deleteDirectory(String directory, Storage storage, FileSystemLog[] logPipeline) {
-		TODO;
+		// TODO: no operation
 	}
 
 	static FileSystemFile openFile(String filePath, boolean createIfMissing, Storage storage, FileSystemLog[] logPipeline) {
+		// TODO: no operation
+		return null;
 	}
 
 }

@@ -73,8 +73,8 @@ public class FileSystem {
 	 * @param filePath
 	 *            Absolute file path.
 	 * @param createIfMissing
-	 *            true to create the file when not found
-	 * @return
+	 *            true to create the file when not found.
+	 * @return Returns the file or null if the file is not found.
 	 */
 	public FileSystemFile open(String filePath, boolean createIfMissing) {
 		return Engine.openFile(filePath, createIfMissing, storage, logPipeline);
