@@ -15,6 +15,17 @@ public class FileSystem {
 	private final LockManager lockManager;
 
 	/**
+	 * @param storage
+	 * @param logPipeline
+	 * @param lockManager
+	 */
+	public FileSystem(Storage storage, FileSystemLog[] logPipeline, LockManager lockManager) {
+		this.storage = storage != null ? storage : new Storage_Memory();
+		this.logPipeline = logPipeline != null ? logPipeline : new FileSystemLog[] { new FileSystemLog_Memory() };
+		this.lockManager = lockManager != null ? lockManager : new LockManager_Memory();
+	}
+
+	/**
 	 * Tests if a file exists.
 	 * 
 	 * @param filePath
@@ -56,7 +67,7 @@ public class FileSystem {
 	 *            Absolute directory path.
 	 */
 	public void createDirectory(String directory) {
-		Engine.createDirectory(directory, storage, logPipeline);
+		Engine.createDirectory(directory, storage, logPipeline, lockManager);
 	}
 
 	/**
