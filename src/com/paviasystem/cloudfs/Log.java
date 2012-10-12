@@ -12,10 +12,6 @@ import com.paviasystem.cloudfs.log.FileSystemLogRecord.Type;
  */
 final class Log {
 
-	public static enum Direction {
-		Ascending, Descending
-	}
-
 	/**
 	 * Searches for the first log record that satisfies a given set of
 	 * conditions.
@@ -73,6 +69,9 @@ final class Log {
 			}
 		} else
 			throw new IllegalStateException("Unexpected direction: " + direction);
+
+		// We found nothing
+		return null;
 	}
 
 }
