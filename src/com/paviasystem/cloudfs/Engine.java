@@ -127,13 +127,13 @@ final class Engine {
 
 			// Here, we are sure all the ancestor directories exist
 			// Let's lock the parent
-			lockManager.withDirectoryLock(parentDirectory, new Runnable() {
+			lockManager.withDirectoryLock(parentDirectory, new Action() {
 				@Override
 				public void run() {
 					// While holding a lock on the parent, create the requested
 					// directory
 					FileSystemLogRecord record = FileSystemLogRecord.createDirectory(directory);
-					Log.write(logPipeline);
+					Log.write(record, logPipeline);
 				}
 			});
 		}

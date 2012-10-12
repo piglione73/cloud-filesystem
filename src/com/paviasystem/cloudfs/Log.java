@@ -31,11 +31,8 @@ final class Log {
 	public static FileSystemLogRecord findFirst(String filePath, Direction direction, Type[] types, FileSystemLog[] logPipeline) {
 		if (filePath == null)
 			throw new IllegalArgumentException("filePath");
-
-		if (logPipeline == null) {
-			// No log --> no log record found
-			return null;
-		}
+		if (logPipeline == null || logPipeline.length==0)
+			throw new IllegalArgumentException("logPipeline");
 
 		// Apply the direction and search in the logPipeline
 		if (direction == Direction.Ascending) {
@@ -74,4 +71,21 @@ final class Log {
 		return null;
 	}
 
+	/**
+	 * Writes a log record into the last element of the log pipeline.
+	 * @param record
+	 * @param logPipeline
+	 */
+	public static void write(FileSystemLogRecord record, FileSystemLog[] logPipeline) {
+		if (record == null)
+			throw new IllegalArgumentException("record");
+		if (logPipeline == null || logPipeline.length==0)
+			throw new IllegalArgumentException("logPipeline");
+
+		//Last element in the pipeline
+		FileSystemLog last = logPipeline[logPipeline.length-1];
+		
+		//Forward the request
+		last.write(record);
+	}
 }

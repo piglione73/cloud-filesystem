@@ -20,4 +20,11 @@ public interface FileSystemLog {
 	 * @return If found, returns the record; otherwise returns null.
 	 */
 	FileSystemLogRecord findFirst(String filePath, Direction direction, Type[] types);
+
+	/**
+	 * Write a log record.
+	 * 
+	 * @param record
+	 */
+	void write(FileSystemLogRecord record);
 }
