@@ -3,23 +3,33 @@ package com.paviasystem.cloudfs.log;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.paviasystem.cloudfs.Path;
+
 public class FileSystemLogRecord {
 	private static AtomicInteger timestamp2Counter = new AtomicInteger(0);
-	
+
 	public static enum Type {
 		Write, SetLength, Remove, CreateDirectory, RemoveDirectory
 	}
 
-	public static FileSystemLogRecord createWrite(String path, long offset, long length, byte[] bytes) {
+	public static FileSystemLogRecord write(String path, long offset, long length, byte[] bytes) {
 		return new FileSystemLogRecord(new Date(), Type.Write, path, offset, length, bytes);
 	}
 
-	public static FileSystemLogRecord createSetLength(String path, long length) {
+	public static FileSystemLogRecord setLength(String path, long length) {
 		return new FileSystemLogRecord(new Date(), Type.SetLength, path, 0, length, null);
 	}
 
-	public static FileSystemLogRecord createRemove(String path) {
+	public static FileSystemLogRecord remove(String path) {
 		return new FileSystemLogRecord(new Date(), Type.Remove, path, 0, 0, null);
+	}
+
+	public static FileSystemLogRecord createDirectory(String path) {
+		return new FileSystemLogRecord(new Date(), Type.CreateDirectory, path, 0, 0, null);
+	}
+
+	public static FileSystemLogRecord removeDirectory(String path) {
+		return new FileSystemLogRecord(new Date(), Type.RemoveDirectory, path, 0, 0, null);
 	}
 
 	Date timestamp1;
@@ -34,7 +44,7 @@ public class FileSystemLogRecord {
 		this.timestamp1 = timestamp;
 		this.timestamp2 = timestamp2Counter.getAndIncrement();
 		this.type = type;
-		this.path = path;
+		this.path = Path.normalize(path);
 		this.offset = offset;
 		this.length = length;
 		this.bytes = bytes;
@@ -53,7 +63,7 @@ public class FileSystemLogRecord {
 	}
 
 	public String getPath() {
-		return path;
+		return Path.normalize(path);
 	}
 
 	public long getOffset() {
