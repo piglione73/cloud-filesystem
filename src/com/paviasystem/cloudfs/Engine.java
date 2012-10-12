@@ -13,6 +13,20 @@ final class Engine {
 	}
 
 	static boolean existsFile(String filePath, Storage storage, FileSystemLog[] logPipeline) {
+		/*
+		 * We want to know if the file exists right now.
+		 * 
+		 * We browse through the log pipeline looking for evidence that the file
+		 * does or does not exist. There is no need to browse through the entire
+		 * log.
+		 * 
+		 * If the latest log entry is "Remove", then we can say the file does
+		 * not exist. If the latest log entry is "Write" or "SetLength", then we
+		 * can say the file exists.
+		 * 
+		 * If no entry about the file is found in the logs, then we hit the
+		 * storage to see if the file exists.
+		 */
 	}
 
 	static boolean existsDirectory(String directory, Storage storage, FileSystemLog[] logPipeline) {

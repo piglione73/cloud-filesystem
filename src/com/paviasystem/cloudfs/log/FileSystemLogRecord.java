@@ -7,11 +7,11 @@ public class FileSystemLogRecord {
 	private static AtomicInteger timestamp2Counter = new AtomicInteger(0);
 	
 	public static enum Type {
-		WriteBytes, SetLength, Remove
+		Write, SetLength, Remove
 	}
 
-	public static FileSystemLogRecord createWriteBytes(String path, long offset, long length, byte[] bytes) {
-		return new FileSystemLogRecord(new Date(), Type.WriteBytes, path, offset, length, bytes);
+	public static FileSystemLogRecord createWrite(String path, long offset, long length, byte[] bytes) {
+		return new FileSystemLogRecord(new Date(), Type.Write, path, offset, length, bytes);
 	}
 
 	public static FileSystemLogRecord createSetLength(String path, long length) {
