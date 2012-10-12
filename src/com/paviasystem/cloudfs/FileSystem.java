@@ -2,10 +2,16 @@ package com.paviasystem.cloudfs;
 
 import java.util.ArrayList;
 
+import com.paviasystem.cloudfs.log.FileSystemLog;
+import com.paviasystem.cloudfs.storage.Storage;
+
 /**
  * The cloud filesystem object. Provides access to the cloud filesystem.
  */
 public class FileSystem {
+	private Storage storage;
+	private FileSystemLog[] logPipeline;
+
 	/**
 	 * Tests if a file exists.
 	 * 
@@ -14,7 +20,7 @@ public class FileSystem {
 	 * @return true if found.
 	 */
 	public boolean existsFile(String filePath) {
-		throw new UnsupportedOperationException();
+		return Engine.existsFile(filePath, storage, logPipeline);
 	}
 
 	/**
@@ -25,7 +31,7 @@ public class FileSystem {
 	 * @return true if found.
 	 */
 	public boolean existsDirectory(String directory) {
-		throw new UnsupportedOperationException();
+		return Engine.existsDirectory(directory, storage, logPipeline);
 	}
 
 	/**
@@ -37,7 +43,7 @@ public class FileSystem {
 	 * @return List of files/directories.
 	 */
 	public ArrayList<FileSystemEntry> list(String directory) {
-		throw new UnsupportedOperationException();
+		return Engine.list(directory, storage, logPipeline);
 	}
 
 	/**
@@ -48,7 +54,7 @@ public class FileSystem {
 	 *            Absolute directory path.
 	 */
 	public void createDirectory(String directory) {
-		throw new UnsupportedOperationException();
+		Engine.createDirectory(directory, storage, logPipeline);
 	}
 
 	/**
@@ -58,7 +64,7 @@ public class FileSystem {
 	 *            Absolute directory to delete.
 	 */
 	public void deleteDirectory(String directory) {
-		throw new UnsupportedOperationException();
+		Engine.deleteDirectory(directory, storage, logPipeline);
 	}
 
 	/**
@@ -71,7 +77,7 @@ public class FileSystem {
 	 * @return
 	 */
 	public FileSystemFile open(String filePath, boolean createIfMissing) {
-		throw new UnsupportedOperationException();
+		return Engine.openFile(filePath, createIfMissing, storage, logPipeline);
 	}
 
 }
