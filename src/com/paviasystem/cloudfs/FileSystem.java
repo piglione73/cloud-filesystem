@@ -71,13 +71,24 @@ public class FileSystem {
 	}
 
 	/**
-	 * Deletes a directory and all its content, recursively.
+	 * Deletes a directory and all its content, recursively. If the directory
+	 * does not exist, it is not an error.
 	 * 
 	 * @param directory
 	 *            Absolute directory to delete.
 	 */
 	public void deleteDirectory(String directory) {
-		Engine.deleteDirectory(directory, storage, logPipeline);
+		Engine.deleteDirectory(directory, storage, logPipeline, lockManager);
+	}
+
+	/**
+	 * Deletes a file. If the file does not exist, it is not an error.
+	 * 
+	 * @param filePath
+	 *            Absolute file path to delete.
+	 */
+	public void deleteFile(String filePath) {
+		Engine.deleteFile(filePath, logPipeline, lockManager);
 	}
 
 	/**

@@ -139,8 +139,48 @@ final class Engine {
 		}
 	}
 
-	static void deleteDirectory(String directory, Storage storage, FileSystemLog[] logPipeline) {
-		// TODO: no operation
+	static void deleteDirectory(final String directory, final Storage storage, final FileSystemLog[] logPipeline, final LockManager lockManager) {
+		/*
+		 * A directory can be deleted always. If not empty, the content must be
+		 * deleted recursively. Hold a lock on directory for the entire
+		 * operation. Hold a lock on each file while deleting it: we must make
+		 * sure we cannot delete an open file.
+		 */
+		lockManager.withDirectoryLock(directory, new Action() {
+			@Override
+			public void run() throws Exception {
+				// List the directory content
+				ArrayList<FileSystemEntry> list = list(directory, storage, logPipeline);
+
+				// Delete each element, recursively
+				for (FileSystemEntry entry : list) {
+					if (entry.isFile()) {
+						// If file, remove it
+						deleteFile(entry.getAbsolutePath(), logPipeline, lockManager);
+					} else {
+						// If directory, descend recursively...
+						deleteDirectory(directory, storage, logPipeline, lockManager);
+					}
+				}
+
+				// Now the directory is empty: let's delete it
+				FileSystemLogRecord record = FileSystemLogRecord.removeDirectory(directory);
+				Log.write(record, logPipeline);
+			}
+		});
+	}
+
+	static void deleteFile(final String filePath, final FileSystemLog[] logPipeline, final LockManager lockManager) {
+		/*
+		 * While holding a lock on the file, remove it
+		 */
+		lockManager.withFileLock(filePath, new Action() {
+			@Override
+			public void run() throws Exception {
+				FileSystemLogRecord record = FileSystemLogRecord.remove(filePath);
+				Log.write(record, logPipeline);
+			}
+		});
 	}
 
 	static FileSystemFile openFile(String filePath, boolean createIfMissing, Storage storage, FileSystemLog[] logPipeline) {
