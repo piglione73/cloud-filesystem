@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfs;
+package com.paviasystem.cloudfsobsolete;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;

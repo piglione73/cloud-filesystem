@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfs;
+package com.paviasystem.cloudfsobsolete;
 
 public class FileSystemFile {
 	/**

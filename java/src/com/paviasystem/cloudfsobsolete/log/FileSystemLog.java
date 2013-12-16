@@ -1,7 +1,7 @@
-package com.paviasystem.cloudfs.log;
+package com.paviasystem.cloudfsobsolete.log;
 
-import com.paviasystem.cloudfs.Direction;
-import com.paviasystem.cloudfs.log.FileSystemLogRecord.Type;
+import com.paviasystem.cloudfsobsolete.Direction;
+import com.paviasystem.cloudfsobsolete.log.FileSystemLogRecord.Type;
 
 public interface FileSystemLog {
 

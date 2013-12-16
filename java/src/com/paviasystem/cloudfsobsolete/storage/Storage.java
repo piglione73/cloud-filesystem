@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfs.storage;
+package com.paviasystem.cloudfsobsolete.storage;
 
 public interface Storage {
 

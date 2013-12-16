@@ -1,10 +1,10 @@
-package com.paviasystem.cloudfs;
+package com.paviasystem.cloudfsobsolete;
 
 import java.util.ArrayList;
 
-import com.paviasystem.cloudfs.locking.LockManager;
-import com.paviasystem.cloudfs.log.FileSystemLog;
-import com.paviasystem.cloudfs.storage.Storage;
+import com.paviasystem.cloudfsobsolete.locking.LockManager;
+import com.paviasystem.cloudfsobsolete.log.FileSystemLog;
+import com.paviasystem.cloudfsobsolete.storage.Storage;
 
 /**
  * The cloud filesystem object. Provides access to the cloud filesystem.

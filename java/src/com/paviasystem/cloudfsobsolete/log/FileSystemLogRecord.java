@@ -1,9 +1,9 @@
-package com.paviasystem.cloudfs.log;
+package com.paviasystem.cloudfsobsolete.log;
 
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.paviasystem.cloudfs.Path;
+import com.paviasystem.cloudfsobsolete.Path;
 
 public class FileSystemLogRecord {
 	private static AtomicInteger timestamp2Counter = new AtomicInteger(0);

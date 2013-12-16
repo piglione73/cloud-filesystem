@@ -1,8 +1,8 @@
-package com.paviasystem.cloudfs;
+package com.paviasystem.cloudfsobsolete;
 
-import com.paviasystem.cloudfs.log.FileSystemLog;
-import com.paviasystem.cloudfs.log.FileSystemLogRecord;
-import com.paviasystem.cloudfs.log.FileSystemLogRecord.Type;
+import com.paviasystem.cloudfsobsolete.log.FileSystemLog;
+import com.paviasystem.cloudfsobsolete.log.FileSystemLogRecord;
+import com.paviasystem.cloudfsobsolete.log.FileSystemLogRecord.Type;
 
 /**
  * The log engine, where all log operations are implemented.

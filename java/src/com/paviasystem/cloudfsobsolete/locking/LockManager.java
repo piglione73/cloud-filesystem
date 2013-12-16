@@ -1,6 +1,6 @@
-package com.paviasystem.cloudfs.locking;
+package com.paviasystem.cloudfsobsolete.locking;
 
-import com.paviasystem.cloudfs.Action;
+import com.paviasystem.cloudfsobsolete.Action;
 
 public interface LockManager {
 

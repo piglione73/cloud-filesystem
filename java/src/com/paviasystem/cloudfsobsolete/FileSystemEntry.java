@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfs;
+package com.paviasystem.cloudfsobsolete;
 
 /**
  * An entry in a filesystem listing. Can be a directory entry or a file entry.
