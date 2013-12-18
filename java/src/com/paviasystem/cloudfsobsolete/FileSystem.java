@@ -20,9 +20,9 @@ public class FileSystem {
 	 * @param lockManager
 	 */
 	public FileSystem(Storage storage, FileSystemLog[] logPipeline, LockManager lockManager) {
-		this.storage = storage != null ? storage : new Storage_Memory();
-		this.logPipeline = logPipeline != null ? logPipeline : new FileSystemLog[] { new FileSystemLog_Memory() };
-		this.lockManager = lockManager != null ? lockManager : new LockManager_Memory();
+		this.storage = storage;
+		this.logPipeline = logPipeline;
+		this.lockManager = lockManager;
 	}
 
 	/**
