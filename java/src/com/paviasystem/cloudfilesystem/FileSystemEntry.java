@@ -1,5 +1,7 @@
 package com.paviasystem.cloudfilesystem;
 
+import java.util.Date;
+
 /**
  * An entry in a filesystem listing. Can be a directory entry or a file entry.
  * 
@@ -7,14 +9,17 @@ package com.paviasystem.cloudfilesystem;
  * 
  */
 public class FileSystemEntry {
-	FileSystem fileSystem;
-	boolean isFile;
-	String absolutePath;
+	final FileSystem fileSystem;
+	final boolean isFile;
+	final String absolutePath;
+	final Date timestamp;
 
-	FileSystemEntry(FileSystem fileSystem, boolean isFile, String absolutePath) {
+	FileSystemEntry(FileSystem fileSystem, boolean isFile, String absolutePath,
+			Date timestamp) {
 		this.fileSystem = fileSystem;
 		this.isFile = isFile;
 		this.absolutePath = Path.normalize(absolutePath);
+		this.timestamp = timestamp;
 	}
 
 	/**
@@ -34,8 +39,11 @@ public class FileSystemEntry {
 	/**
 	 * The absolute path of this entry.
 	 */
-
 	public String getAbsolutePath() {
 		return absolutePath;
+	}
+
+	public Date getTimestamp() {
+		return timestamp;
 	}
 }
