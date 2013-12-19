@@ -8,6 +8,7 @@ import net.fusejna.ErrorCodes;
 import net.fusejna.FuseException;
 import net.fusejna.StructFuseFileInfo.FileInfoWrapper;
 import net.fusejna.StructStat.StatWrapper;
+import net.fusejna.types.TypeMode.ModeWrapper;
 import net.fusejna.types.TypeMode.NodeType;
 import net.fusejna.util.FuseFilesystemAdapterFull;
 
@@ -29,15 +30,6 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int readdir(final String path, final DirectoryFiller filler) {
-		ArrayList<FileSystemEntry> list = fs.list(path);
-		for (FileSystemEntry entry : list)
-			filler.add(entry.getAbsolutePath());
-
-		return 0;
-	}
-
-	@Override
 	public int getattr(final String path, final StatWrapper stat) {
 		FileSystemEntry entry = fs.getEntry(path);
 		if (entry != null) {
@@ -49,19 +41,41 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 		return -ErrorCodes.ENOENT();
 	}
 
-	private final String filename = "/hello.txt";
-	private final String contents = "Hello World!\n";
+	@Override
+	public int readdir(final String path, final DirectoryFiller filler) {
+		ArrayList<FileSystemEntry> list = fs.list(path);
+		for (FileSystemEntry entry : list)
+			filler.add(entry.getAbsolutePath());
+
+		return 0;
+	}
 
 	@Override
-	public int read(final String path, final ByteBuffer buffer,
-			final long size, final long offset, final FileInfoWrapper info) {
-		// Compute substring that we are being asked to read
-		final String s = contents.substring(
-				(int) offset,
-				(int) Math.max(offset,
-						Math.min(contents.length() - offset, offset + size)));
-		buffer.put(s.getBytes());
-		return s.getBytes().length;
+	public int mkdir(String path, ModeWrapper mode) {
+		fs.createDirectory(path);
+		return 0;
 	}
+
+	@Override
+	public int rmdir(String path) {
+		fs.deleteDirectory(path);
+		return 0;
+	}
+
+//	private final String filename = "/hello.txt";
+//	private final String contents = "Hello World!\n";
+//
+//	@Override
+//	public int read(final String path, final ByteBuffer buffer,
+//			final long size, final long offset, final FileInfoWrapper info) {
+//
+//		// Compute substring that we are being asked to read
+//		final String s = contents.substring(
+//				(int) offset,
+//				(int) Math.max(offset,
+//						Math.min(contents.length() - offset, offset + size)));
+//		buffer.put(s.getBytes());
+//		return s.getBytes().length;
+//	}
 
 }

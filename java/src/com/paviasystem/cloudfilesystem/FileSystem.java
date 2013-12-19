@@ -15,4 +15,8 @@ public interface FileSystem {
 
 	FileSystemEntry getEntry(String absolutePath);
 
+	void createDirectory(String absolutePath);
+
+	void deleteDirectory(String absolutePath);
+
 }
