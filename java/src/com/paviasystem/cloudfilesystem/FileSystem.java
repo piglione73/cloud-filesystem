@@ -19,4 +19,6 @@ public interface FileSystem {
 
 	void deleteDirectory(String absolutePath);
 
+	File open(String path, boolean truncate);
+
 }
