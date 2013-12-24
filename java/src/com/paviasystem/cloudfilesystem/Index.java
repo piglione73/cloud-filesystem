@@ -10,7 +10,7 @@ public interface Index {
 
 	void createDirectoryEntry(String absolutePath);
 
-	void createFileEntry(String absolutePath, String blobName);
+	IndexEntry createFileEntry(String absolutePath, String blobName);
 
 	void deleteEntry(String absolutePath);
 }

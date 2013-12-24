@@ -31,14 +31,14 @@ public class MemoryIndex implements Index {
 
 	@Override
 	public void createDirectoryEntry(String absolutePath) {
-		entries.put(absolutePath, new IndexEntry(absolutePath, false,
-				new Date(), null));
+		entries.put(absolutePath, new IndexEntry(absolutePath, false, new Date(), null));
 	}
 
 	@Override
-	public void createFileEntry(String absolutePath, String blobName) {
-		entries.put(absolutePath, new IndexEntry(absolutePath, true,
-				new Date(), blobName));
+	public IndexEntry createFileEntry(String absolutePath, String blobName) {
+		IndexEntry entry = new IndexEntry(absolutePath, true, new Date(), blobName);
+		entries.put(absolutePath, entry);
+		return entry;
 	}
 
 	@Override

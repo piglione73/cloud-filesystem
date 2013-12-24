@@ -6,6 +6,8 @@ public interface File {
 
 	int read(byte[] buffer, int bufferOffset, int bytesToRead, long fileOffset);
 
-	void write(byte[] buf, int bufferOffset, int bytesToWrite, long fileOffset);
+	void write(byte[] buffer, int bufferOffset, int bytesToWrite, long fileOffset);
+
+	void setLength(long newLength);
 
 }

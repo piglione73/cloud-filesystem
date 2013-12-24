@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.fuse;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -13,6 +13,10 @@ import net.fusejna.types.TypeMode.ModeWrapper;
 import net.fusejna.types.TypeMode.NodeType;
 import net.fusejna.util.FuseFilesystemAdapterFull;
 
+import com.paviasystem.cloudfilesystem.CloudFileSystem;
+import com.paviasystem.cloudfilesystem.File;
+import com.paviasystem.cloudfilesystem.FileSystem;
+import com.paviasystem.cloudfilesystem.FileSystemEntry;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryIndex;
 
 public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
@@ -47,7 +51,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 		if (entry != null) {
 			NodeType nt = entry.isFile() ? NodeType.FILE : NodeType.DIRECTORY;
 			stat.setMode(nt, true, true, true);
-			stat.setAllTimesMillis(entry.timestamp.getTime());
+			stat.setAllTimesMillis(entry.getTimestamp().getTime());
 			return 0;
 		}
 
@@ -77,7 +81,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 
 	@Override
 	public int create(String path, ModeWrapper mode, FileInfoWrapper info) {
-		File f = fs.open(path, true);
+		File f = fs.open(path, true, false, true);
 		registerHandle(info, f);
 
 		return 0;
@@ -85,7 +89,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 
 	@Override
 	public int open(String path, FileInfoWrapper info) {
-		File f = fs.open(path, false);
+		File f = fs.open(path, false, true, false);
 		registerHandle(info, f);
 
 		return 0;
@@ -125,8 +129,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int read(String path, ByteBuffer buffer, long size, long offset,
-			FileInfoWrapper info) {
+	public int read(String path, ByteBuffer buffer, long size, long offset, FileInfoWrapper info) {
 		File f = getHandle(info);
 
 		byte[] buf = new byte[(int) Math.min(size, 64 * 1024)];
@@ -152,8 +155,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int write(String path, ByteBuffer buffer, long size, long offset,
-			FileInfoWrapper info) {
+	public int write(String path, ByteBuffer buffer, long size, long offset, FileInfoWrapper info) {
 		File f = getHandle(info);
 
 		byte[] buf = new byte[(int) Math.min(size, 64 * 1024)];
@@ -162,8 +164,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 		long curOffset = offset;
 
 		while (remainingBytesToWrite > 0) {
-			int bytesFromBuffer = (int) Math.min(buf.length,
-					remainingBytesToWrite);
+			int bytesFromBuffer = (int) Math.min(buf.length, remainingBytesToWrite);
 			buffer.get(buf, 0, bytesFromBuffer);
 			f.write(buf, 0, bytesFromBuffer, curOffset);
 
@@ -178,36 +179,16 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 
 	@Override
 	public int rename(String path, String newName) {
-		// TODO Auto-generated method stub
-		return super.rename(path, newName);
+		TODO;
 	}
 
 	@Override
 	public int truncate(String path, long offset) {
-		// TODO Auto-generated method stub
-		return super.truncate(path, offset);
+		TODO;
 	}
 
 	@Override
 	public int unlink(String path) {
-		// TODO Auto-generated method stub
-		return super.unlink(path);
+		TODO;
 	}
-
-	// private final String filename = "/hello.txt";
-	// private final String contents = "Hello World!\n";
-	//
-	// @Override
-	// public int read(final String path, final ByteBuffer buffer,
-	// final long size, final long offset, final FileInfoWrapper info) {
-	//
-	// // Compute substring that we are being asked to read
-	// final String s = contents.substring(
-	// (int) offset,
-	// (int) Math.max(offset,
-	// Math.min(contents.length() - offset, offset + size)));
-	// buffer.put(s.getBytes());
-	// return s.getBytes().length;
-	// }
-
 }

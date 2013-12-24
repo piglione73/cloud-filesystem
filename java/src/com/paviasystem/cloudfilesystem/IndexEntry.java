@@ -8,8 +8,7 @@ public class IndexEntry {
 	public final Date timestamp;
 	public final String blobName;
 
-	public IndexEntry(String absolutePath, boolean isFile, Date timestamp,
-			String blobName) {
+	public IndexEntry(String absolutePath, boolean isFile, Date timestamp, String blobName) {
 		this.absolutePath = absolutePath;
 		this.isFile = isFile;
 		this.blobName = blobName;
