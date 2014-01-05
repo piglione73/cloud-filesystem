@@ -49,9 +49,12 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 
 		FileSystemEntry entry = fs.getEntry(path);
 		if (entry != null) {
-			NodeType nt = entry.isFile() ? NodeType.FILE : NodeType.DIRECTORY;
+			NodeType nt = entry.isFile ? NodeType.FILE : NodeType.DIRECTORY;
 			stat.setMode(nt, true, true, true);
-			stat.setAllTimesMillis(entry.getTimestamp().getTime());
+			stat.setAllTimesMillis(entry.timestamp.getTime());
+			if (entry.isFile)
+				stat.size(entry.length);
+
 			return 0;
 		}
 
@@ -62,7 +65,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	public int readdir(final String path, final DirectoryFiller filler) {
 		ArrayList<FileSystemEntry> list = fs.list(path);
 		for (FileSystemEntry entry : list)
-			filler.add(entry.getAbsolutePath());
+			filler.add(entry.absolutePath);
 
 		return 0;
 	}
@@ -129,7 +132,8 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int read(String path, ByteBuffer buffer, long size, long offset, FileInfoWrapper info) {
+	public int read(String path, ByteBuffer buffer, long size, long offset,
+			FileInfoWrapper info) {
 		File f = getHandle(info);
 
 		byte[] buf = new byte[(int) Math.min(size, 64 * 1024)];
@@ -155,7 +159,8 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int write(String path, ByteBuffer buffer, long size, long offset, FileInfoWrapper info) {
+	public int write(String path, ByteBuffer buffer, long size, long offset,
+			FileInfoWrapper info) {
 		File f = getHandle(info);
 
 		byte[] buf = new byte[(int) Math.min(size, 64 * 1024)];
@@ -164,7 +169,8 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 		long curOffset = offset;
 
 		while (remainingBytesToWrite > 0) {
-			int bytesFromBuffer = (int) Math.min(buf.length, remainingBytesToWrite);
+			int bytesFromBuffer = (int) Math.min(buf.length,
+					remainingBytesToWrite);
 			buffer.get(buf, 0, bytesFromBuffer);
 			f.write(buf, 0, bytesFromBuffer, curOffset);
 
@@ -184,7 +190,9 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 
 	@Override
 	public int truncate(String path, long offset) {
-		TODO;
+		File f = fs.open(path, true, true, true);
+		f.flush();
+		return 0;
 	}
 
 	@Override

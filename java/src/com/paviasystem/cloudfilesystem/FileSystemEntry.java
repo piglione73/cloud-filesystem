@@ -9,40 +9,18 @@ import java.util.Date;
  * 
  */
 public class FileSystemEntry {
-	final FileSystem fileSystem;
-	final boolean isFile;
-	final String absolutePath;
-	final Date timestamp;
+	public final FileSystem fileSystem;
+	public final boolean isFile;
+	public final String absolutePath;
+	public final Date timestamp;
+	public final long length;
 
-	FileSystemEntry(FileSystem fileSystem, boolean isFile, String absolutePath, Date timestamp) {
+	FileSystemEntry(FileSystem fileSystem, boolean isFile, String absolutePath,
+			Date timestamp, long length) {
 		this.fileSystem = fileSystem;
 		this.isFile = isFile;
 		this.absolutePath = Path.normalize(absolutePath);
 		this.timestamp = timestamp;
-	}
-
-	/**
-	 * The filesystem this entry belongs to.
-	 */
-	public FileSystem getFileSystem() {
-		return fileSystem;
-	}
-
-	/**
-	 * True if file, false if directory.
-	 */
-	public boolean isFile() {
-		return isFile;
-	}
-
-	/**
-	 * The absolute path of this entry.
-	 */
-	public String getAbsolutePath() {
-		return absolutePath;
-	}
-
-	public Date getTimestamp() {
-		return timestamp;
+		this.length = length;
 	}
 }

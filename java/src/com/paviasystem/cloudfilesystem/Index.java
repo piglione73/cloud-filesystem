@@ -1,6 +1,7 @@
 package com.paviasystem.cloudfilesystem;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 public interface Index {
 
@@ -11,6 +12,8 @@ public interface Index {
 	void createDirectoryEntry(String absolutePath);
 
 	IndexEntry createFileEntry(String absolutePath, String blobName);
+
+	void updateEntry(String absolutePath, long length, Date timestamp);
 
 	void deleteEntry(String absolutePath);
 }
