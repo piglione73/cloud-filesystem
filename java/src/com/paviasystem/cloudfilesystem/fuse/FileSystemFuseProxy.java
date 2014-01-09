@@ -63,7 +63,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 
 	@Override
 	public int readdir(final String path, final DirectoryFiller filler) {
-		ArrayList<FileSystemEntry> list = fs.list(path);
+		ArrayList<FileSystemEntry> list = fs.listDirectory(path);
 		for (FileSystemEntry entry : list)
 			filler.add(entry.absolutePath);
 
@@ -184,8 +184,9 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int rename(String path, String newName) {
-		TODO;
+	public int rename(String oldPath, String newPath) {
+		fs.rename(oldPath, newPath);
+		return 0;
 	}
 
 	@Override
@@ -197,6 +198,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 
 	@Override
 	public int unlink(String path) {
-		TODO;
+		fs.deleteFile(path);
+		return 0;
 	}
 }

@@ -15,5 +15,7 @@ public interface Index {
 
 	void updateEntry(String absolutePath, long length, Date timestamp);
 
+	void updateEntry(String absolutePath, String newAbsolutePath);
+
 	void deleteEntry(String absolutePath);
 }

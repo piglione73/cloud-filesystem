@@ -11,14 +11,21 @@ public interface FileSystem {
 	 *            Absolute path of the directory whose children are desired
 	 * @return Returns a list of file system entries
 	 */
-	ArrayList<FileSystemEntry> list(String absolutePath);
+	ArrayList<FileSystemEntry> listDirectory(String absolutePath)
+			throws Exception;
 
-	FileSystemEntry getEntry(String absolutePath);
+	FileSystemEntry getEntry(String absolutePath) throws Exception;
 
-	void createDirectory(String absolutePath);
+	void createDirectory(String absolutePath) throws Exception;
 
-	void deleteDirectory(String absolutePath);
+	void deleteDirectory(String absolutePath) throws Exception;
 
-	File open(String absolutePath, boolean allowCreate, boolean allowOpen, boolean truncate);
+	File open(String absolutePath, boolean allowCreate, boolean allowOpen,
+			boolean truncate) throws Exception;
+
+	void rename(String oldAbsolutePath, String newAbsolutePath)
+			throws Exception;
+
+	void deleteFile(String absolutePath) throws Exception;
 
 }

@@ -5,11 +5,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class CloudFileSystem implements FileSystem {
+	final static String LOCAL_CACHE_BLOB = "blob";
 	final static String LOCAL_CACHE_OPS = "ops";
 
 	final BlobStore blobStore;
@@ -31,7 +31,7 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	@Override
-	public ArrayList<FileSystemEntry> list(String absolutePath) {
+	public ArrayList<FileSystemEntry> listDirectory(String absolutePath) {
 		// File system entries are in a strongly-consistent file system index
 		absolutePath = Path.normalize(absolutePath);
 		ArrayList<IndexEntry> entries = index.listEntries(absolutePath);
@@ -43,8 +43,9 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	private FileSystemEntry toFileSystemEntry(IndexEntry indexEntry) {
-		return new FileSystemEntry(this, indexEntry.isFile, indexEntry.absolutePath,
-				indexEntry.timestamp, indexEntry.length);
+		return new FileSystemEntry(this, indexEntry.isFile,
+				indexEntry.absolutePath, indexEntry.timestamp,
+				indexEntry.length);
 	}
 
 	@Override
@@ -55,7 +56,7 @@ public class CloudFileSystem implements FileSystem {
 		if (entry != null)
 			return toFileSystemEntry(entry);
 		else
-		return null;
+			return null;
 	}
 
 	@Override
@@ -71,8 +72,21 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	@Override
+	public void rename(String oldAbsolutePath, String newAbsolutePath) {
+		oldAbsolutePath = Path.normalize(oldAbsolutePath);
+		newAbsolutePath = Path.normalize(newAbsolutePath);
+		index.updateEntry(oldAbsolutePath, newAbsolutePath);
+	}
+
+	@Override
+	public void deleteFile(String absolutePath) {
+		absolutePath = Path.normalize(absolutePath);
+		index.deleteEntry(absolutePath);
+	}
+
+	@Override
 	public File open(String absolutePath, boolean allowCreate,
-			boolean allowOpen, boolean truncate) {
+			boolean allowOpen, boolean truncate) throws Exception {
 		if (!allowCreate && !allowOpen) {
 			// We can do nothing, so we open no file
 			return null;
@@ -103,7 +117,7 @@ public class CloudFileSystem implements FileSystem {
 	private class MyFile implements File {
 		IndexEntry entry;
 
-		public MyFile(IndexEntry entry, boolean truncate) {
+		public MyFile(IndexEntry entry, boolean truncate) throws Exception {
 			this.entry = entry;
 
 			// Truncate if necessary
@@ -112,7 +126,7 @@ public class CloudFileSystem implements FileSystem {
 		}
 
 		@Override
-		public void flush() {
+		public void flush() throws IOException {
 			// Atomic flush from the local cache to the log
 			// Combine local cache entries into a single log record, then delete
 			// the
@@ -123,14 +137,12 @@ public class CloudFileSystem implements FileSystem {
 			// length
 			long newLen = entry.length;
 
-			// Create a stream for writing into the log
-			try (DataOutputStream logEntryStream = log.createWriteEntryStream()) {
+			// Create a stream for writing a new entry into the log
+			try (DataOutputStream logEntryStream = log
+					.createWriteEntryStream(entry.blobName)) {
 				// Iterate over the cache entries
-				Iterator<CacheLogEntry> ceIt = localCache.list(entry.blobName,
-						LOCAL_CACHE_OPS);
-				while (ceIt.hasNext()) {
-					CacheLogEntry ce = ceIt.next();
-
+				for (CacheLogEntry ce : localCache.list(entry.blobName,
+						LOCAL_CACHE_OPS)) {
 					// Write each cache entry into the single log entry
 					ce.writeInto(logEntryStream);
 
@@ -166,14 +178,20 @@ public class CloudFileSystem implements FileSystem {
 		}
 
 		@Override
-		public int read(byte[] buffer, int bufferOffset, int bytesToRead, long fileOffset) {
-			//Combine the blob, the log and the local cache in order to have the current situation
-			//At the end, asynchronously update the blob and clean the log, if convenient
-			TODO;
+		public int read(byte[] buffer, int bufferOffset, int bytesToRead,
+				long fileOffset) throws Exception {
+			// Ensure the localcache blob is up-to-date, then read from the
+			// localcache blob
+			updateLocalCacheBlob();
+
+			try (LocalCacheReader lcr = localCache.read(entry.blobName,
+					LOCAL_CACHE_BLOB, null)) {
+				return lcr.read(buffer, bufferOffset, bytesToRead, fileOffset);
+			}
 		}
 
 		@Override
-		public void setLength(final long newLength) {
+		public void setLength(final long newLength) throws Exception {
 			// Write into the local cache until a flush is requested
 			long sequence1 = new Date().getTime();
 			long sequence2 = sequence.incrementAndGet();
@@ -188,13 +206,15 @@ public class CloudFileSystem implements FileSystem {
 						}
 					});
 
-			localCache.write(entry.blobName, LOCAL_CACHE_OPS, cacheFileName,
-					cacheFileBytes);
+			try (LocalCacheWriter lcw = localCache.write(entry.blobName,
+					LOCAL_CACHE_OPS, cacheFileName)) {
+				lcw.write(cacheFileBytes, 0, cacheFileBytes.length, 0);
+			}
 		}
 
 		@Override
 		public void write(final byte[] buffer, final int bufferOffset,
-				final int bytesToWrite, final long fileOffset) {
+				final int bytesToWrite, final long fileOffset) throws Exception {
 			// Write into the local cache until a flush is requested
 			long sequence1 = System.currentTimeMillis();
 			long sequence2 = sequence.incrementAndGet();
@@ -210,13 +230,15 @@ public class CloudFileSystem implements FileSystem {
 						}
 					});
 
-			localCache.write(entry.blobName, LOCAL_CACHE_OPS, cacheFileName,
-					cacheFileBytes);
+			try (LocalCacheWriter lcw = localCache.write(entry.blobName,
+					LOCAL_CACHE_OPS, cacheFileName)) {
+				lcw.write(cacheFileBytes, 0, cacheFileBytes.length, 0);
+			}
 		}
 
 		private String getCacheFileName(long sequence1, long sequence2) {
 			return pad(Long.toString(sequence1), 20) + "-"
-					+ pad(Long.toString(sequence1), 20);
+					+ pad(Long.toString(sequence2), 20);
 		}
 
 		private String pad(String s, int len) {
@@ -228,5 +250,59 @@ public class CloudFileSystem implements FileSystem {
 			sb.append(s);
 			return sb.toString();
 		}
+
+		private void updateLocalCacheBlob() {
+			/*
+			 * Combine the local cache blob and the log records, if possible.
+			 * Otherwise, get the blob from the blob store and combine it with
+			 * the log records. At the end, the local cache blob is up-to-date
+			 * with the current file contents. Log records must be taken
+			 * directly from the log, because the local cache log records only
+			 * reflect what we wrote into the file, not what others wrote.
+			 */
+			Date localCacheBlobTs = localCache.getTimestamp(entry.blobName,
+					LOCAL_CACHE_BLOB, null);
+
+			try (LocalCacheWriter lcw = localCache.write(entry.blobName,
+					LOCAL_CACHE_BLOB, null)) {
+				boolean first = true;
+				for (CacheLogEntry le : log.list(entry.blobName,
+						localCacheBlobTs)) {
+					if (first) {
+						first = false;
+
+						// If the timestamp of the first log entry returned is
+						// before localCacheBlobTs, then we are sure that our
+						// local
+						// cache blob contains enough information. Otherwise,
+						// we'll
+						// have to hit the blob store if we want to read
+						// meaningful
+						// data. In fact, if the timestamp of the first log
+						// entry
+						// returned is after localCacheBlobTs, then we cannot be
+						// sure that we are not losing data (maybe, the log has
+						// been
+						// cleaned and our local cache blob has fallen behind
+						// the
+						// log clean horizon)
+						if (localCacheBlobTs.after(le.timestamp)) {
+							// We can use the local cache blob as a starting
+							// point
+							// We just go on
+						} else {
+							// We cannot use the local cache blob as a starting
+							// point, we must use the blob store
+							updateLocalCacheBlobFromBlobStore(lcw);
+							return;
+						}
+					}
+
+					// Let's apply the log entry to the local cache blob
+					applyLogEntryToLocalCacheBlob(le, lcw);
+				}
+			}
+		}
+
 	}
 }
