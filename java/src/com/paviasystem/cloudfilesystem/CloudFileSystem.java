@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.paviasystem.cloudfilesystem.blocks.BlobStore;
+
 public class CloudFileSystem implements FileSystem {
 	final static String LOCAL_CACHE_BLOB = "blob";
 	final static String LOCAL_CACHE_OPS = "ops";
