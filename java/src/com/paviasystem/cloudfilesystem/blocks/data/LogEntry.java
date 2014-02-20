@@ -7,7 +7,6 @@ public class LogEntry {
 	public final static char SET_LENGTH = 'L';
 	public final static char WRITE_BYTES = 'W';
 
-	public String name;
 	public char type;
 	public long start;
 	public long length;
