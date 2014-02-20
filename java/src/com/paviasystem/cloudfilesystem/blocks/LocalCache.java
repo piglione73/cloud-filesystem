@@ -2,7 +2,7 @@ package com.paviasystem.cloudfilesystem.blocks;
 
 import java.util.Date;
 
-import com.paviasystem.cloudfilesystem.blocks.data.CacheLogEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.LogEntry;
 
 public interface LocalCache {
 	LocalCacheReader read(String category1, String category2, String name);
@@ -13,5 +13,5 @@ public interface LocalCache {
 
 	void remove(String category1, String category2, String name);
 
-	Iterable<CacheLogEntry> list(String category1, String category2);
+	Iterable<LogEntry> list(String category1, String category2);
 }

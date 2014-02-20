@@ -16,7 +16,7 @@ import com.paviasystem.cloudfilesystem.blocks.LocalCacheReader;
 import com.paviasystem.cloudfilesystem.blocks.LocalCacheWriter;
 import com.paviasystem.cloudfilesystem.blocks.LockManager;
 import com.paviasystem.cloudfilesystem.blocks.Log;
-import com.paviasystem.cloudfilesystem.blocks.data.CacheLogEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.LogEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
@@ -153,7 +153,7 @@ public class CloudFileSystem implements FileSystem {
 			try (DataOutputStream logEntryStream = log
 					.createWriteEntryStream(entry.blobName)) {
 				// Iterate over the cache entries
-				for (CacheLogEntry ce : localCache.list(entry.blobName,
+				for (LogEntry ce : localCache.list(entry.blobName,
 						LOCAL_CACHE_OPS)) {
 					// Write each cache entry into the single log entry
 					ce.writeInto(logEntryStream);
@@ -162,11 +162,11 @@ public class CloudFileSystem implements FileSystem {
 					cacheFileNames.add(ce.name);
 
 					// Keep track of the resulting blob len
-					if (ce.type == CacheLogEntry.SET_LENGTH) {
+					if (ce.type == LogEntry.SET_LENGTH) {
 						// A SET_LENGTH entry specifies the new len. No
 						// computation required
 						newLen = ce.length;
-					} else if (ce.type == CacheLogEntry.WRITE_BYTES) {
+					} else if (ce.type == LogEntry.WRITE_BYTES) {
 						// A WRITE_BYTES entry specifies an interval of bytes
 						// written. The
 						// last byte written determines the newLen
@@ -212,7 +212,7 @@ public class CloudFileSystem implements FileSystem {
 					.getBytes(new StreamUtils.Writer() {
 						@Override
 						public void write(DataOutput out) throws IOException {
-							CacheLogEntry ce = CacheLogEntry.createSetLength(
+							LogEntry ce = LogEntry.createSetLength(
 									cacheFileName, newLength);
 							ce.writeInto(out);
 						}
@@ -235,7 +235,7 @@ public class CloudFileSystem implements FileSystem {
 					.getBytes(new StreamUtils.Writer() {
 						@Override
 						public void write(DataOutput out) throws IOException {
-							CacheLogEntry ce = CacheLogEntry.createWriteBytes(
+							LogEntry ce = LogEntry.createWriteBytes(
 									cacheFileName, buffer, bufferOffset,
 									bytesToWrite, fileOffset);
 							ce.writeInto(out);
@@ -278,7 +278,7 @@ public class CloudFileSystem implements FileSystem {
 			try (LocalCacheWriter lcw = localCache.write(entry.blobName,
 					LOCAL_CACHE_BLOB, null)) {
 				boolean first = true;
-				for (CacheLogEntry le : log.list(entry.blobName,
+				for (LogEntry le : log.list(entry.blobName,
 						localCacheBlobTs)) {
 					if (first) {
 						first = false;

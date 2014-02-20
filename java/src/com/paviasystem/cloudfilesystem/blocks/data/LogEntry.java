@@ -3,7 +3,7 @@ package com.paviasystem.cloudfilesystem.blocks.data;
 import java.io.DataOutput;
 import java.io.IOException;
 
-public class CacheLogEntry {
+public class LogEntry {
 	public final static char SET_LENGTH = 'L';
 	public final static char WRITE_BYTES = 'W';
 
@@ -25,17 +25,17 @@ public class CacheLogEntry {
 		}
 	}
 
-	public static CacheLogEntry createSetLength(String name, long length) {
-		CacheLogEntry ce = new CacheLogEntry();
+	public static LogEntry createSetLength(String name, long length) {
+		LogEntry ce = new LogEntry();
 		ce.name = name;
 		ce.type = SET_LENGTH;
 		ce.length = 0;
 		return ce;
 	}
 
-	public static CacheLogEntry createWriteBytes(String name, byte[] buffer,
+	public static LogEntry createWriteBytes(String name, byte[] buffer,
 			int bufferOffset, int bytesToWrite, long destFileOffset) {
-		CacheLogEntry ce = new CacheLogEntry();
+		LogEntry ce = new LogEntry();
 		ce.name = name;
 		ce.type = WRITE_BYTES;
 		ce.start = destFileOffset;
