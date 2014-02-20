@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
-import com.paviasystem.cloudfilesystem.Index;
-import com.paviasystem.cloudfilesystem.IndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.Index;
+import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
 import com.paviasystem.cloudfsobsolete.Path;
 
 public class MemoryIndex implements Index {

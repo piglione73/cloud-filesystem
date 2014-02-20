@@ -1,7 +1,9 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.blocks;
 
 import java.io.DataOutputStream;
 import java.util.Date;
+
+import com.paviasystem.cloudfilesystem.blocks.data.CacheLogEntry;
 
 public interface Log {
 

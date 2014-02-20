@@ -1,6 +1,8 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.blocks;
 
 import java.util.Date;
+
+import com.paviasystem.cloudfilesystem.blocks.data.CacheLogEntry;
 
 public interface LocalCache {
 	LocalCacheReader read(String category1, String category2, String name);

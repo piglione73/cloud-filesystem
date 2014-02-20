@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.blocks;
 
 public interface LocalCacheWriter extends AutoCloseable {
 

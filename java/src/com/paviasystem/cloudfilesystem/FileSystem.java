@@ -2,6 +2,8 @@ package com.paviasystem.cloudfilesystem;
 
 import java.util.ArrayList;
 
+import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
+
 public interface FileSystem {
 
 	/**

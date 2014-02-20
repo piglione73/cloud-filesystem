@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.blocks.data;
 
 import java.io.DataOutput;
 import java.io.IOException;

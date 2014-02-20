@@ -1,7 +1,10 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.blocks;
 
 import java.util.ArrayList;
 import java.util.Date;
+
+import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
+
 
 public interface Index {
 

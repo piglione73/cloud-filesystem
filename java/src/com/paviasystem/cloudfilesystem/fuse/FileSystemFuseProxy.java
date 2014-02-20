@@ -16,7 +16,7 @@ import net.fusejna.util.FuseFilesystemAdapterFull;
 import com.paviasystem.cloudfilesystem.CloudFileSystem;
 import com.paviasystem.cloudfilesystem.File;
 import com.paviasystem.cloudfilesystem.FileSystem;
-import com.paviasystem.cloudfilesystem.FileSystemEntry;
+import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryIndex;
 
 public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {

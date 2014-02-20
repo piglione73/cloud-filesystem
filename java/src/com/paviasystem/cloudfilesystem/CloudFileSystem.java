@@ -9,6 +9,16 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.paviasystem.cloudfilesystem.blocks.BlobStore;
+import com.paviasystem.cloudfilesystem.blocks.Index;
+import com.paviasystem.cloudfilesystem.blocks.LazyMirroring;
+import com.paviasystem.cloudfilesystem.blocks.LocalCache;
+import com.paviasystem.cloudfilesystem.blocks.LocalCacheReader;
+import com.paviasystem.cloudfilesystem.blocks.LocalCacheWriter;
+import com.paviasystem.cloudfilesystem.blocks.LockManager;
+import com.paviasystem.cloudfilesystem.blocks.Log;
+import com.paviasystem.cloudfilesystem.blocks.data.CacheLogEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
+import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
 public class CloudFileSystem implements FileSystem {
 	final static String LOCAL_CACHE_BLOB = "blob";
