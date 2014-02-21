@@ -1,16 +1,21 @@
 package com.paviasystem.cloudfilesystem.blocks;
 
-import com.paviasystem.cloudfilesystem.blocks.data.BlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 
 public interface Index {
 	DirectoryFileIndexEntry readDirectoryFileEntry(String absolutePath);
 
 	void writeDirectoryFileEntry(DirectoryFileIndexEntry entry);
 
-	BlobIndexEntry readBlobEntry(String blobName);
+	FileBlobIndexEntry readFileBlobEntry(String fileBlobName);
 
-	void writeBlobEntry(BlobIndexEntry entry);
+	void writeFileBlobEntry(FileBlobIndexEntry entry);
+
+	LogBlobIndexEntry readLogBlobEntry(String logBlobName);
+
+	void writeLogBlobEntry(LogBlobIndexEntry entry);
 	/*
 	 * ArrayList<IndexEntry> listEntries(String absolutePath);
 	 * 

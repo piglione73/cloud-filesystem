@@ -4,11 +4,11 @@ import java.util.HashMap;
 
 
 public interface BlobStore {
-	ByteReader read(String blobName);
+	ByteReader read(String name);
 
-	ByteWriter write(String blobName, HashMap<String, String> metaData);
+	ByteWriter write(String name, HashMap<String, String> metaData);
 
-	void delete(String blobName);
+	void delete(String name);
 
-	Iterable<String> list();
+	Iterable<String> list(String prefix);
 }
