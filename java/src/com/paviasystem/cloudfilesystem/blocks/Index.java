@@ -5,9 +5,15 @@ import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 
 public interface Index {
+	Iterable<DirectoryFileIndexEntry> listChildrenDirectoryFileEntries(String absolutePath);
+
 	DirectoryFileIndexEntry readDirectoryFileEntry(String absolutePath);
 
 	void writeDirectoryFileEntry(DirectoryFileIndexEntry entry);
+
+	void deleteDirectoryFileEntry(String absolutePath);
+
+	void updateDirectoryFileEntry(String oldAbsolutePath, String newAbsolutePath);
 
 	FileBlobIndexEntry readFileBlobEntry(String fileBlobName);
 

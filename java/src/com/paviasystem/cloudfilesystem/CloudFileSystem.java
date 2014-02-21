@@ -8,8 +8,6 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-import sun.rmi.runtime.Log;
-
 import com.paviasystem.cloudfilesystem.blocks.BlobStore;
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.LazyMirroring;
@@ -17,6 +15,7 @@ import com.paviasystem.cloudfilesystem.blocks.LocalCache;
 import com.paviasystem.cloudfilesystem.blocks.LocalCacheReader;
 import com.paviasystem.cloudfilesystem.blocks.LocalCacheWriter;
 import com.paviasystem.cloudfilesystem.blocks.LockManager;
+import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
 public class CloudFileSystem implements FileSystem {
@@ -26,7 +25,6 @@ public class CloudFileSystem implements FileSystem {
 	final BlobStore blobStore;
 	final Index index;
 	final LocalCache localCache;
-	final Log log;
 	final LockManager lockManager;
 	final LazyMirroring lazyMirroring;
 
@@ -36,7 +34,6 @@ public class CloudFileSystem implements FileSystem {
 		this.blobStore = null;
 		this.index = index;
 		this.localCache = null;
-		this.log = null;
 		this.lockManager = null;
 		this.lazyMirroring = null;
 	}
@@ -45,23 +42,23 @@ public class CloudFileSystem implements FileSystem {
 	public ArrayList<FileSystemEntry> listDirectory(String absolutePath) {
 		// File system entries are in a strongly-consistent file system index
 		absolutePath = Path.normalize(absolutePath);
-		ArrayList<IndexEntry> entries = index.listEntries(absolutePath);
+		Iterable<DirectoryFileIndexEntry> entries = index.listChildrenDirectoryFileEntries(absolutePath);
 		ArrayList<FileSystemEntry> ret = new ArrayList<FileSystemEntry>();
-		for (IndexEntry entry : entries)
+		for (DirectoryFileIndexEntry entry : entries)
 			ret.add(toFileSystemEntry(entry));
 
 		return ret;
 	}
 
-	private FileSystemEntry toFileSystemEntry(IndexEntry indexEntry) {
-		return new FileSystemEntry(this, indexEntry.isFile, indexEntry.absolutePath, indexEntry.timestamp, indexEntry.length);
+	private FileSystemEntry toFileSystemEntry(DirectoryFileIndexEntry entry) {
+		return new FileSystemEntry(this, entry.absolutePath, entry.isFile, entry.isSoftLink, entry.targetAbsolutePath);
 	}
 
 	@Override
 	public FileSystemEntry getEntry(String absolutePath) {
 		// File system entries are in a strongly-consistent file system index
 		absolutePath = Path.normalize(absolutePath);
-		IndexEntry entry = index.getEntry(absolutePath);
+		DirectoryFileIndexEntry entry = index.readDirectoryFileEntry(absolutePath);
 		if (entry != null)
 			return toFileSystemEntry(entry);
 		else
@@ -71,26 +68,32 @@ public class CloudFileSystem implements FileSystem {
 	@Override
 	public void createDirectory(String absolutePath) {
 		absolutePath = Path.normalize(absolutePath);
-		index.createDirectoryEntry(absolutePath);
+
+		DirectoryFileIndexEntry entry = new DirectoryFileIndexEntry();
+		entry.absolutePath = absolutePath;
+		entry.isFile = false;
+		entry.isSoftLink = false;
+
+		index.writeDirectoryFileEntry(entry);
 	}
 
 	@Override
 	public void deleteDirectory(String absolutePath) {
 		absolutePath = Path.normalize(absolutePath);
-		index.deleteEntry(absolutePath);
+		index.deleteDirectoryFileEntry(absolutePath);
 	}
 
 	@Override
 	public void rename(String oldAbsolutePath, String newAbsolutePath) {
 		oldAbsolutePath = Path.normalize(oldAbsolutePath);
 		newAbsolutePath = Path.normalize(newAbsolutePath);
-		index.updateEntry(oldAbsolutePath, newAbsolutePath);
+		index.updateDirectoryFileEntry(oldAbsolutePath, newAbsolutePath);
 	}
 
 	@Override
 	public void deleteFile(String absolutePath) {
 		absolutePath = Path.normalize(absolutePath);
-		index.deleteEntry(absolutePath);
+		index.deleteDirectoryFileEntry(absolutePath);
 	}
 
 	@Override
@@ -103,17 +106,23 @@ public class CloudFileSystem implements FileSystem {
 		absolutePath = Path.normalize(absolutePath);
 
 		// See if the file exists
-		IndexEntry entry = index.getEntry(absolutePath);
+		DirectoryFileIndexEntry entry = index.readDirectoryFileEntry(absolutePath);
 		if (entry != null) {
 			// The file exists. Can we open it?
-			if (allowOpen)
+			if (entry.isFile && allowOpen)
 				return new MyFile(entry, truncate);
 		} else {
 			// The file does not exist. Can we create it?
 			if (allowCreate) {
 				// Let's create a new entry
-				String blobName = UUID.randomUUID().toString();
-				entry = index.createFileEntry(absolutePath, blobName);
+				entry = new DirectoryFileIndexEntry();
+				entry.absolutePath = absolutePath;
+				entry.isFile=true;
+				entry.isSoftLink=false;
+				entry.blobName=UUID.randomUUID().toString();
+				
+				index.writeDirectoryFileEntry(entry);
+				
 				return new MyFile(entry, true);
 			}
 		}
@@ -123,9 +132,9 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	private class MyFile implements File {
-		IndexEntry entry;
+		DirectoryFileIndexEntry entry;
 
-		public MyFile(IndexEntry entry, boolean truncate) throws Exception {
+		public MyFile(DirectoryFileIndexEntry entry, boolean truncate) throws Exception {
 			this.entry = entry;
 
 			// Truncate if necessary
