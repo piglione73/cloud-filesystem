@@ -11,7 +11,7 @@ public interface Index {
 
 	FileBlobIndexEntry readFileBlobEntry(String fileBlobName);
 
-	void writeFileBlobEntry(FileBlobIndexEntry entry);
+	boolean writeFileBlobEntry(FileBlobIndexEntry entry, String latestLogBlobNameToReplace);
 
 	LogBlobIndexEntry readLogBlobEntry(String logBlobName);
 

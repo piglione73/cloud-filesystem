@@ -132,8 +132,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int read(String path, ByteBuffer buffer, long size, long offset,
-			FileInfoWrapper info) {
+	public int read(String path, ByteBuffer buffer, long size, long offset, FileInfoWrapper info) {
 		File f = getHandle(info);
 
 		byte[] buf = new byte[(int) Math.min(size, 64 * 1024)];
@@ -159,8 +158,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	}
 
 	@Override
-	public int write(String path, ByteBuffer buffer, long size, long offset,
-			FileInfoWrapper info) {
+	public int write(String path, ByteBuffer buffer, long size, long offset, FileInfoWrapper info) {
 		File f = getHandle(info);
 
 		byte[] buf = new byte[(int) Math.min(size, 64 * 1024)];
@@ -169,8 +167,7 @@ public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 		long curOffset = offset;
 
 		while (remainingBytesToWrite > 0) {
-			int bytesFromBuffer = (int) Math.min(buf.length,
-					remainingBytesToWrite);
+			int bytesFromBuffer = (int) Math.min(buf.length, remainingBytesToWrite);
 			buffer.get(buf, 0, bytesFromBuffer);
 			f.write(buf, 0, bytesFromBuffer, curOffset);
 

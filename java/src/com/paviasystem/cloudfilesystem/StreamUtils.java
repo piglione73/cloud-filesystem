@@ -11,8 +11,7 @@ public class StreamUtils {
 	}
 
 	public static byte[] getBytes(Writer writer) {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				DataOutputStream dos = new DataOutputStream(baos)) {
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos)) {
 			writer.write(dos);
 			dos.flush();
 			baos.flush();

@@ -18,8 +18,7 @@ public class FileSystemEntry {
 	public final Date timestamp;
 	public final long length;
 
-	FileSystemEntry(FileSystem fileSystem, boolean isFile, String absolutePath,
-			Date timestamp, long length) {
+	FileSystemEntry(FileSystem fileSystem, boolean isFile, String absolutePath, Date timestamp, long length) {
 		this.fileSystem = fileSystem;
 		this.isFile = isFile;
 		this.absolutePath = Path.normalize(absolutePath);

@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import sun.rmi.runtime.Log;
+
 import com.paviasystem.cloudfilesystem.blocks.BlobStore;
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.LazyMirroring;
@@ -15,9 +17,6 @@ import com.paviasystem.cloudfilesystem.blocks.LocalCache;
 import com.paviasystem.cloudfilesystem.blocks.LocalCacheReader;
 import com.paviasystem.cloudfilesystem.blocks.LocalCacheWriter;
 import com.paviasystem.cloudfilesystem.blocks.LockManager;
-import com.paviasystem.cloudfilesystem.blocks.Log;
-import com.paviasystem.cloudfilesystem.blocks.data.LogEntry;
-import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
 public class CloudFileSystem implements FileSystem {
@@ -55,9 +54,7 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	private FileSystemEntry toFileSystemEntry(IndexEntry indexEntry) {
-		return new FileSystemEntry(this, indexEntry.isFile,
-				indexEntry.absolutePath, indexEntry.timestamp,
-				indexEntry.length);
+		return new FileSystemEntry(this, indexEntry.isFile, indexEntry.absolutePath, indexEntry.timestamp, indexEntry.length);
 	}
 
 	@Override
@@ -97,8 +94,7 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	@Override
-	public File open(String absolutePath, boolean allowCreate,
-			boolean allowOpen, boolean truncate) throws Exception {
+	public File open(String absolutePath, boolean allowCreate, boolean allowOpen, boolean truncate) throws Exception {
 		if (!allowCreate && !allowOpen) {
 			// We can do nothing, so we open no file
 			return null;
@@ -150,11 +146,9 @@ public class CloudFileSystem implements FileSystem {
 			long newLen = entry.length;
 
 			// Create a stream for writing a new entry into the log
-			try (DataOutputStream logEntryStream = log
-					.createWriteEntryStream(entry.blobName)) {
+			try (DataOutputStream logEntryStream = log.createWriteEntryStream(entry.blobName)) {
 				// Iterate over the cache entries
-				for (LogEntry ce : localCache.list(entry.blobName,
-						LOCAL_CACHE_OPS)) {
+				for (LogEntry ce : localCache.list(entry.blobName, LOCAL_CACHE_OPS)) {
 					// Write each cache entry into the single log entry
 					ce.writeInto(logEntryStream);
 
@@ -181,8 +175,7 @@ public class CloudFileSystem implements FileSystem {
 
 			// At the end, delete the cache entries...
 			for (String cacheFileName : cacheFileNames)
-				localCache.remove(entry.blobName, LOCAL_CACHE_OPS,
-						cacheFileName);
+				localCache.remove(entry.blobName, LOCAL_CACHE_OPS, cacheFileName);
 
 			// ... and update the IndexEntry with the new len and the new
 			// timestamp
@@ -190,14 +183,12 @@ public class CloudFileSystem implements FileSystem {
 		}
 
 		@Override
-		public int read(byte[] buffer, int bufferOffset, int bytesToRead,
-				long fileOffset) throws Exception {
+		public int read(byte[] buffer, int bufferOffset, int bytesToRead, long fileOffset) throws Exception {
 			// Ensure the localcache blob is up-to-date, then read from the
 			// localcache blob
 			updateLocalCacheBlob();
 
-			try (LocalCacheReader lcr = localCache.read(entry.blobName,
-					LOCAL_CACHE_BLOB, null)) {
+			try (LocalCacheReader lcr = localCache.read(entry.blobName, LOCAL_CACHE_BLOB, null)) {
 				return lcr.read(buffer, bufferOffset, bytesToRead, fileOffset);
 			}
 		}
@@ -208,49 +199,40 @@ public class CloudFileSystem implements FileSystem {
 			long sequence1 = new Date().getTime();
 			long sequence2 = sequence.incrementAndGet();
 			final String cacheFileName = getCacheFileName(sequence1, sequence2);
-			byte[] cacheFileBytes = StreamUtils
-					.getBytes(new StreamUtils.Writer() {
-						@Override
-						public void write(DataOutput out) throws IOException {
-							LogEntry ce = LogEntry.createSetLength(
-									cacheFileName, newLength);
-							ce.writeInto(out);
-						}
-					});
+			byte[] cacheFileBytes = StreamUtils.getBytes(new StreamUtils.Writer() {
+				@Override
+				public void write(DataOutput out) throws IOException {
+					LogEntry ce = LogEntry.createSetLength(cacheFileName, newLength);
+					ce.writeInto(out);
+				}
+			});
 
-			try (LocalCacheWriter lcw = localCache.write(entry.blobName,
-					LOCAL_CACHE_OPS, cacheFileName)) {
+			try (LocalCacheWriter lcw = localCache.write(entry.blobName, LOCAL_CACHE_OPS, cacheFileName)) {
 				lcw.write(cacheFileBytes, 0, cacheFileBytes.length, 0);
 			}
 		}
 
 		@Override
-		public void write(final byte[] buffer, final int bufferOffset,
-				final int bytesToWrite, final long fileOffset) throws Exception {
+		public void write(final byte[] buffer, final int bufferOffset, final int bytesToWrite, final long fileOffset) throws Exception {
 			// Write into the local cache until a flush is requested
 			long sequence1 = System.currentTimeMillis();
 			long sequence2 = sequence.incrementAndGet();
 			final String cacheFileName = getCacheFileName(sequence1, sequence2);
-			byte[] cacheFileBytes = StreamUtils
-					.getBytes(new StreamUtils.Writer() {
-						@Override
-						public void write(DataOutput out) throws IOException {
-							LogEntry ce = LogEntry.createWriteBytes(
-									cacheFileName, buffer, bufferOffset,
-									bytesToWrite, fileOffset);
-							ce.writeInto(out);
-						}
-					});
+			byte[] cacheFileBytes = StreamUtils.getBytes(new StreamUtils.Writer() {
+				@Override
+				public void write(DataOutput out) throws IOException {
+					LogEntry ce = LogEntry.createWriteBytes(cacheFileName, buffer, bufferOffset, bytesToWrite, fileOffset);
+					ce.writeInto(out);
+				}
+			});
 
-			try (LocalCacheWriter lcw = localCache.write(entry.blobName,
-					LOCAL_CACHE_OPS, cacheFileName)) {
+			try (LocalCacheWriter lcw = localCache.write(entry.blobName, LOCAL_CACHE_OPS, cacheFileName)) {
 				lcw.write(cacheFileBytes, 0, cacheFileBytes.length, 0);
 			}
 		}
 
 		private String getCacheFileName(long sequence1, long sequence2) {
-			return pad(Long.toString(sequence1), 20) + "-"
-					+ pad(Long.toString(sequence2), 20);
+			return pad(Long.toString(sequence1), 20) + "-" + pad(Long.toString(sequence2), 20);
 		}
 
 		private String pad(String s, int len) {
@@ -272,14 +254,11 @@ public class CloudFileSystem implements FileSystem {
 			 * directly from the log, because the local cache log records only
 			 * reflect what we wrote into the file, not what others wrote.
 			 */
-			Date localCacheBlobTs = localCache.getTimestamp(entry.blobName,
-					LOCAL_CACHE_BLOB, null);
+			Date localCacheBlobTs = localCache.getTimestamp(entry.blobName, LOCAL_CACHE_BLOB, null);
 
-			try (LocalCacheWriter lcw = localCache.write(entry.blobName,
-					LOCAL_CACHE_BLOB, null)) {
+			try (LocalCacheWriter lcw = localCache.write(entry.blobName, LOCAL_CACHE_BLOB, null)) {
 				boolean first = true;
-				for (LogEntry le : log.list(entry.blobName,
-						localCacheBlobTs)) {
+				for (LogEntry le : log.list(entry.blobName, localCacheBlobTs)) {
 					if (first) {
 						first = false;
 
