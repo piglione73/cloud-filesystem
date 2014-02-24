@@ -17,7 +17,9 @@ public interface Index {
 
 	FileBlobIndexEntry readFileBlobEntry(String fileBlobName);
 
-	boolean writeFileBlobEntry(FileBlobIndexEntry entry, String latestLogBlobNameToReplace);
+	void createFileBlobEntry(FileBlobIndexEntry blobEntry);
+
+	boolean updateFileBlobEntry(FileBlobIndexEntry entry, String latestLogBlobNameToReplace);
 
 	LogBlobIndexEntry readLogBlobEntry(String logBlobName);
 
@@ -37,4 +39,5 @@ public interface Index {
 	 * 
 	 * void deleteEntry(String absolutePath);
 	 */
+
 }

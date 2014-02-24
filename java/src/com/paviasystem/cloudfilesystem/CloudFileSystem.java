@@ -9,13 +9,14 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.paviasystem.cloudfilesystem.blocks.BlobStore;
+import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.LazyMirroring;
 import com.paviasystem.cloudfilesystem.blocks.LocalCache;
-import com.paviasystem.cloudfilesystem.blocks.LocalCacheReader;
-import com.paviasystem.cloudfilesystem.blocks.LocalCacheWriter;
 import com.paviasystem.cloudfilesystem.blocks.LockManager;
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.LogBlobPart;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
 public class CloudFileSystem implements FileSystem {
@@ -106,24 +107,35 @@ public class CloudFileSystem implements FileSystem {
 		absolutePath = Path.normalize(absolutePath);
 
 		// See if the file exists
-		DirectoryFileIndexEntry entry = index.readDirectoryFileEntry(absolutePath);
-		if (entry != null) {
+		DirectoryFileIndexEntry fileEntry = index.readDirectoryFileEntry(absolutePath);
+		if (fileEntry != null) {
 			// The file exists. Can we open it?
-			if (entry.isFile && allowOpen)
-				return new MyFile(entry, truncate);
+			if (fileEntry.isFile && allowOpen) {
+				//Get blob entry also
+				FileBlobIndexEntry blobEntry = Utils.getFileBlobIndexEntry(index, fileEntry);
+				return new MyFile(blobEntry.fileBlobName, truncate);
+			}
 		} else {
 			// The file does not exist. Can we create it?
 			if (allowCreate) {
-				// Let's create a new entry
-				entry = new DirectoryFileIndexEntry();
-				entry.absolutePath = absolutePath;
-				entry.isFile=true;
-				entry.isSoftLink=false;
-				entry.blobName=UUID.randomUUID().toString();
-				
-				index.writeDirectoryFileEntry(entry);
-				
-				return new MyFile(entry, true);
+				// Let's create a new entry (file + blob)
+				fileEntry = new DirectoryFileIndexEntry();
+				fileEntry.absolutePath = absolutePath;
+				fileEntry.isFile = true;
+				fileEntry.isSoftLink = false;
+				fileEntry.blobName = UUID.randomUUID().toString();
+
+				FileBlobIndexEntry blobEntry = new FileBlobIndexEntry();
+				blobEntry.fileBlobName = fileEntry.blobName;
+				blobEntry.latestLogBlobName = "";
+				blobEntry.length = 0;
+				blobEntry.creationTimestamp = new Date();
+				blobEntry.lastEditTimestamp = blobEntry.creationTimestamp;
+
+				index.createFileBlobEntry(blobEntry);
+				index.writeDirectoryFileEntry(fileEntry);
+
+				return new MyFile(blobEntry.fileBlobName, truncate);
 			}
 		}
 
@@ -132,18 +144,30 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	private class MyFile implements File {
-		DirectoryFileIndexEntry entry;
+		String blobName;
+		ByteWriter operationsLog;
 
-		public MyFile(DirectoryFileIndexEntry entry, boolean truncate) throws Exception {
-			this.entry = entry;
+		public MyFile(String blobName, boolean truncate) throws Exception {
+			this.blobName = blobName;
+			this.operationsLog = null;
 
 			// Truncate if necessary
 			if (truncate)
 				setLength(0);
 		}
 
+		private void ensureOperationsLog() {
+			if (operationsLog == null)
+				operationsLog = localCache.openSequentialWriter(blobName, LOCAL_CACHE_OPS);
+		}
+
 		@Override
-		public void flush() throws IOException {
+		public void close() throws Exception {
+			flush();
+		}
+
+		@Override
+		public void flush() throws Exception {
 			// Atomic flush from the local cache to the log
 			// Combine local cache entries into a single log record, then delete
 			// the
@@ -205,20 +229,9 @@ public class CloudFileSystem implements FileSystem {
 		@Override
 		public void setLength(final long newLength) throws Exception {
 			// Write into the local cache until a flush is requested
-			long sequence1 = new Date().getTime();
-			long sequence2 = sequence.incrementAndGet();
-			final String cacheFileName = getCacheFileName(sequence1, sequence2);
-			byte[] cacheFileBytes = StreamUtils.getBytes(new StreamUtils.Writer() {
-				@Override
-				public void write(DataOutput out) throws IOException {
-					LogEntry ce = LogEntry.createSetLength(cacheFileName, newLength);
-					ce.writeInto(out);
-				}
-			});
-
-			try (LocalCacheWriter lcw = localCache.write(entry.blobName, LOCAL_CACHE_OPS, cacheFileName)) {
-				lcw.write(cacheFileBytes, 0, cacheFileBytes.length, 0);
-			}
+			ensureOperationsLog();
+			LogBlobPart part = LogBlobPart.createSetLengthPart(newLength);
+			part.writeInto(operationsLog);
 		}
 
 		@Override
@@ -303,6 +316,5 @@ public class CloudFileSystem implements FileSystem {
 				}
 			}
 		}
-
 	}
 }

@@ -1,6 +1,6 @@
 package com.paviasystem.cloudfilesystem;
 
-public interface File {
+public interface File extends AutoCloseable {
 
 	void flush() throws Exception;
 
