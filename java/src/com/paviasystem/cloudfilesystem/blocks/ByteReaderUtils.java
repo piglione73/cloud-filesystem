@@ -19,4 +19,11 @@ public class ByteReaderUtils {
 		//OK, we read exactly "exactNumBytesToRead"
 		return true;
 	}
+
+	public static void copy(ByteReader reader, ByteWriter writer) {
+		byte[] buffer = new byte[65536];
+		for (int bytesRead = reader.read(buffer, 0, buffer.length); bytesRead > 0; bytesRead = reader.read(buffer, 0, buffer.length))
+			writer.write(buffer, 0, bytesRead);
+	}
+
 }

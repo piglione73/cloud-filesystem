@@ -1,14 +1,16 @@
 package com.paviasystem.cloudfilesystem;
 
-import java.io.DataOutput;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
+import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteReader;
+import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.BlobStore;
+import com.paviasystem.cloudfilesystem.blocks.ByteReader;
+import com.paviasystem.cloudfilesystem.blocks.ByteReaderUtils;
 import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.LazyMirroring;
@@ -16,6 +18,7 @@ import com.paviasystem.cloudfilesystem.blocks.LocalCache;
 import com.paviasystem.cloudfilesystem.blocks.LockManager;
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobPart;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
@@ -28,8 +31,6 @@ public class CloudFileSystem implements FileSystem {
 	final LocalCache localCache;
 	final LockManager lockManager;
 	final LazyMirroring lazyMirroring;
-
-	static AtomicLong sequence = new AtomicLong(0);
 
 	public CloudFileSystem(Index index) {
 		this.blobStore = null;
@@ -161,6 +162,11 @@ public class CloudFileSystem implements FileSystem {
 				operationsLog = localCache.openSequentialWriter(blobName, LOCAL_CACHE_OPS);
 		}
 
+		private void flushAndCloseOperationsLog() throws Exception {
+			operationsLog.close();
+			operationsLog = null;
+		}
+
 		@Override
 		public void close() throws Exception {
 			flush();
@@ -169,50 +175,38 @@ public class CloudFileSystem implements FileSystem {
 		@Override
 		public void flush() throws Exception {
 			// Atomic flush from the local cache to the log
-			// Combine local cache entries into a single log record, then delete
-			// the
-			// local cache entries
-			ArrayList<String> cacheFileNames = new ArrayList<String>();
+			//First, flush the log into the local cache
+			flushAndCloseOperationsLog();
 
-			// While writing into the log, we keep track of the resulting blob
-			// length
-			long newLen = entry.length;
-
-			// Create a stream for writing a new entry into the log
-			try (DataOutputStream logEntryStream = log.createWriteEntryStream(entry.blobName)) {
-				// Iterate over the cache entries
-				for (LogEntry ce : localCache.list(entry.blobName, LOCAL_CACHE_OPS)) {
-					// Write each cache entry into the single log entry
-					ce.writeInto(logEntryStream);
-
-					// Keep its name for later removal
-					cacheFileNames.add(ce.name);
-
-					// Keep track of the resulting blob len
-					if (ce.type == LogEntry.SET_LENGTH) {
-						// A SET_LENGTH entry specifies the new len. No
-						// computation required
-						newLen = ce.length;
-					} else if (ce.type == LogEntry.WRITE_BYTES) {
-						// A WRITE_BYTES entry specifies an interval of bytes
-						// written. The
-						// last byte written determines the newLen
-						long byteAfterlastByte = ce.start + ce.length;
-
-						// Enlarge the newLen so as to be at least
-						// "byteAfterlastByte"
-						newLen = Math.max(newLen, byteAfterlastByte);
-					}
+			// Then, copy the log parts into the blob store
+			String logBlobName = UUID.randomUUID().toString();
+			try (ByteReader reader = localCache.openSequentialReader(blobName, LOCAL_CACHE_OPS)) {
+				try (ByteWriter writer = blobStore.write(logBlobName, null)) {
+					ByteReaderUtils.copy(reader, writer);
 				}
 			}
 
-			// At the end, delete the cache entries...
-			for (String cacheFileName : cacheFileNames)
-				localCache.remove(entry.blobName, LOCAL_CACHE_OPS, cacheFileName);
-
-			// ... and update the IndexEntry with the new len and the new
-			// timestamp
-			index.updateEntry(entry.absolutePath, newLen, new Date());
+			/*
+			 * Now the tricky part: we must register the newly-written log blob
+			 * into the index so as it points to the previous log entry in a
+			 * consistent manner.
+			 * 
+			 * We must try the process and repeat it until we manage to update the index consistently.
+			 */
+			//Register the log blob in the index
+			LogBlobIndexEntry lbie = new LogBlobIndexEntry();
+			lbie.logBlobName = logBlobName;
+			lbie.fileBlobName=blobName;
+			lbie.previousLogBlobName=?;
+			lbie.creationTimestamp = new Date();
+			
+			index.writeLogBlobIndexEntry(lbie);
+			
+			//Then update the file blob entry
+			???;
+			
+			//At the end, delete the operations log
+			localCache.delete(blobName, LOCAL_CACHE_OPS);
 		}
 
 		@Override
@@ -221,8 +215,8 @@ public class CloudFileSystem implements FileSystem {
 			// localcache blob
 			updateLocalCacheBlob();
 
-			try (LocalCacheReader lcr = localCache.read(entry.blobName, LOCAL_CACHE_BLOB, null)) {
-				return lcr.read(buffer, bufferOffset, bytesToRead, fileOffset);
+			try (AbsoluteByteReader blob = localCache.openAbsoluteReader(blobName, LOCAL_CACHE_BLOB)) {
+				return blob.read(buffer, bufferOffset, bytesToRead, fileOffset);
 			}
 		}
 
@@ -236,35 +230,13 @@ public class CloudFileSystem implements FileSystem {
 
 		@Override
 		public void write(final byte[] buffer, final int bufferOffset, final int bytesToWrite, final long fileOffset) throws Exception {
+			//Get the bytes to write
+			byte[] bytes = Arrays.copyOfRange(buffer, bufferOffset, bufferOffset + bytesToWrite);
+
 			// Write into the local cache until a flush is requested
-			long sequence1 = System.currentTimeMillis();
-			long sequence2 = sequence.incrementAndGet();
-			final String cacheFileName = getCacheFileName(sequence1, sequence2);
-			byte[] cacheFileBytes = StreamUtils.getBytes(new StreamUtils.Writer() {
-				@Override
-				public void write(DataOutput out) throws IOException {
-					LogEntry ce = LogEntry.createWriteBytes(cacheFileName, buffer, bufferOffset, bytesToWrite, fileOffset);
-					ce.writeInto(out);
-				}
-			});
-
-			try (LocalCacheWriter lcw = localCache.write(entry.blobName, LOCAL_CACHE_OPS, cacheFileName)) {
-				lcw.write(cacheFileBytes, 0, cacheFileBytes.length, 0);
-			}
-		}
-
-		private String getCacheFileName(long sequence1, long sequence2) {
-			return pad(Long.toString(sequence1), 20) + "-" + pad(Long.toString(sequence2), 20);
-		}
-
-		private String pad(String s, int len) {
-			int slen = s.length();
-			StringBuilder sb = new StringBuilder(len);
-			for (int i = 0; i < slen; i++)
-				sb.append('0');
-
-			sb.append(s);
-			return sb.toString();
+			ensureOperationsLog();
+			LogBlobPart part = LogBlobPart.createWritePart(fileOffset, bytes);
+			part.writeInto(operationsLog);
 		}
 
 		private void updateLocalCacheBlob() {
@@ -276,9 +248,9 @@ public class CloudFileSystem implements FileSystem {
 			 * directly from the log, because the local cache log records only
 			 * reflect what we wrote into the file, not what others wrote.
 			 */
-			Date localCacheBlobTs = localCache.getTimestamp(entry.blobName, LOCAL_CACHE_BLOB, null);
+			Date localCacheBlobTs = localCache.getTimestamp(blobName, LOCAL_CACHE_BLOB, null);
 
-			try (LocalCacheWriter lcw = localCache.write(entry.blobName, LOCAL_CACHE_BLOB, null)) {
+			try (AbsoluteByteWriter lcw = localCache.openAbsoluteWriter(blobName, LOCAL_CACHE_BLOB)) {
 				boolean first = true;
 				for (LogEntry le : log.list(entry.blobName, localCacheBlobTs)) {
 					if (first) {

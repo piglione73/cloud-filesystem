@@ -52,4 +52,21 @@ public class LogBlobPart {
 
 		return part;
 	}
+
+	public static LogBlobPart createSetLengthPart(long newLength) {
+		LogBlobPart part = new LogBlobPart();
+		part.type = SET_LENGTH;
+		part.newLength = newLength;
+
+		return part;
+	}
+
+	public static LogBlobPart createWritePart(long destOffset, byte[] bytes) {
+		LogBlobPart part = new LogBlobPart();
+		part.type = WRITE;
+		part.destOffset = destOffset;
+		part.bytes = bytes;
+
+		return part;
+	}
 }
