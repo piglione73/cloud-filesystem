@@ -12,7 +12,7 @@ class Utils {
 		if (!fileEntry.isFile)
 			throw new Exception("Not a file: " + fileEntry.absolutePath);
 
-		//Recursively follow soft link, if soft link
+		// Recursively follow soft link, if soft link
 		if (fileEntry.isSoftLink) {
 			DirectoryFileIndexEntry linkedFileEntry = index.readDirectoryFileEntry(fileEntry.targetAbsolutePath);
 			if (linkedFileEntry == null)
@@ -21,7 +21,7 @@ class Utils {
 			return getFileBlobIndexEntry(index, linkedFileEntry);
 		}
 
-		//If regular file, get file blob index entry
+		// If regular file, get file blob index entry
 		FileBlobIndexEntry blobEntry = index.readFileBlobEntry(fileEntry.blobName);
 		if (blobEntry == null)
 			throw new Exception("Missing blob: " + fileEntry.absolutePath + " --> " + fileEntry.blobName);

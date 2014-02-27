@@ -83,10 +83,10 @@ final class Log {
 		if (logPipeline == null || logPipeline.length == 0)
 			throw new IllegalArgumentException("logPipeline");
 
-		//Last element in the pipeline
+		// Last element in the pipeline
 		FileSystemLog last = logPipeline[logPipeline.length - 1];
 
-		//Forward the request
+		// Forward the request
 		last.write(record);
 	}
 }

@@ -1,5 +1,7 @@
 package com.paviasystem.cloudfilesystem.blocks;
 
+import java.util.Date;
+
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
@@ -19,25 +21,9 @@ public interface Index {
 
 	void createFileBlobEntry(FileBlobIndexEntry blobEntry);
 
-	boolean updateFileBlobEntry(FileBlobIndexEntry entry, String latestLogBlobNameToReplace);
+	boolean updateFileBlobEntry(String fileBlobName, String oldLatestLogBlobName, String newLatestLogBlobName, long newLength, Date newLastEditTimestamp);
 
 	LogBlobIndexEntry readLogBlobEntry(String logBlobName);
 
 	void writeLogBlobEntry(LogBlobIndexEntry entry);
-	/*
-	 * ArrayList<IndexEntry> listEntries(String absolutePath);
-	 * 
-	 * IndexEntry getEntry(String absolutePath);
-	 * 
-	 * void createDirectoryEntry(String absolutePath);
-	 * 
-	 * IndexEntry createFileEntry(String absolutePath, String blobName);
-	 * 
-	 * void updateEntry(String absolutePath, long length, Date timestamp);
-	 * 
-	 * void updateEntry(String absolutePath, String newAbsolutePath);
-	 * 
-	 * void deleteEntry(String absolutePath);
-	 */
-
 }

@@ -32,14 +32,14 @@ public class LogBlobPart {
 		byte[] buf = new byte[13];
 		ByteBuffer bytes = ByteBuffer.wrap(buf);
 
-		//Read type	
+		// Read type
 		if (!ByteReaderUtils.readExact(reader, buf, 0, 1))
 			return null;
 
 		LogBlobPart part = new LogBlobPart();
 		part.type = bytes.get();
 
-		//Read the rest, based on type
+		// Read the rest, based on type
 		if (part.type == SET_LENGTH)
 			part.newLength = bytes.getLong();
 		else if (part.type == WRITE) {

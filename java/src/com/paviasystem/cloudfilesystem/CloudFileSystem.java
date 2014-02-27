@@ -1,16 +1,16 @@
 package com.paviasystem.cloudfilesystem;
 
-import java.io.DataOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.UUID;
 
 import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteReader;
 import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.BlobStore;
 import com.paviasystem.cloudfilesystem.blocks.ByteReader;
-import com.paviasystem.cloudfilesystem.blocks.ByteReaderUtils;
 import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.LazyMirroring;
@@ -112,7 +112,7 @@ public class CloudFileSystem implements FileSystem {
 		if (fileEntry != null) {
 			// The file exists. Can we open it?
 			if (fileEntry.isFile && allowOpen) {
-				//Get blob entry also
+				// Get blob entry also
 				FileBlobIndexEntry blobEntry = Utils.getFileBlobIndexEntry(index, fileEntry);
 				return new MyFile(blobEntry.fileBlobName, truncate);
 			}
@@ -175,14 +175,26 @@ public class CloudFileSystem implements FileSystem {
 		@Override
 		public void flush() throws Exception {
 			// Atomic flush from the local cache to the log
-			//First, flush the log into the local cache
+			// First, flush the log into the local cache
 			flushAndCloseOperationsLog();
 
-			// Then, copy the log parts into the blob store
+			// Then, copy the log parts into the blob store. Meanwhile, read the
+			// log parts and determine the offset of the lowest unaffected byte
+			// (so we can later consistently determine the new file length)
 			String logBlobName = UUID.randomUUID().toString();
+			long lowestUnaffectedOffset = 0;
 			try (ByteReader reader = localCache.openSequentialReader(blobName, LOCAL_CACHE_OPS)) {
 				try (ByteWriter writer = blobStore.write(logBlobName, null)) {
-					ByteReaderUtils.copy(reader, writer);
+					for (LogBlobPart part = LogBlobPart.readFrom(reader); part != null; part = LogBlobPart.readFrom(reader)) {
+						// Measure...
+						if (part.type == LogBlobPart.SET_LENGTH)
+							lowestUnaffectedOffset = Math.max(lowestUnaffectedOffset, part.newLength);
+						else if (part.type == LogBlobPart.WRITE)
+							lowestUnaffectedOffset = Math.max(lowestUnaffectedOffset, part.destOffset + part.bytes.length);
+
+						// ... and write
+						part.writeInto(writer);
+					}
 				}
 			}
 
@@ -191,22 +203,59 @@ public class CloudFileSystem implements FileSystem {
 			 * into the index so as it points to the previous log entry in a
 			 * consistent manner.
 			 * 
-			 * We must try the process and repeat it until we manage to update the index consistently.
+			 * We must try the process and repeat it until we manage to update
+			 * the index consistently.
 			 */
-			//Register the log blob in the index
-			LogBlobIndexEntry lbie = new LogBlobIndexEntry();
-			lbie.logBlobName = logBlobName;
-			lbie.fileBlobName=blobName;
-			lbie.previousLogBlobName=?;
-			lbie.creationTimestamp = new Date();
-			
-			index.writeLogBlobIndexEntry(lbie);
-			
-			//Then update the file blob entry
-			???;
-			
-			//At the end, delete the operations log
+			while (true) {
+				// Let's see what is the current log entry, so we attach our new
+				// log blob index entry to it
+				FileBlobIndexEntry blobEntry = index.readFileBlobEntry(blobName);
+				String latestLogBlobName = blobEntry.latestLogBlobName;
+
+				// Determine the new length by combining the current length and
+				// the measurements made on the log parts
+				long newLength = Math.max(lowestUnaffectedOffset, blobEntry.length);
+
+				// Register the log blob in the index and attach it to the
+				// latest log blob name
+				LogBlobIndexEntry lbie = new LogBlobIndexEntry();
+				lbie.logBlobName = logBlobName;
+				lbie.fileBlobName = blobName;
+				lbie.previousLogBlobName = latestLogBlobName;
+				lbie.creationTimestamp = new Date();
+
+				index.writeLogBlobEntry(lbie);
+
+				// Then update the file blob entry, but only if it hasn't
+				// changed
+				if (index.updateFileBlobEntry(blobName, latestLogBlobName, logBlobName, newLength, new Date())) {
+					// Ok, we consistently updated the file blob entry, so we
+					// are done
+					break;
+				}
+			}
+
+			// At the end, delete the operations log
 			localCache.delete(blobName, LOCAL_CACHE_OPS);
+		}
+
+		@Override
+		public void setLength(final long newLength) throws Exception {
+			// Write into the local cache until a flush is requested
+			ensureOperationsLog();
+			LogBlobPart part = LogBlobPart.createSetLengthPart(newLength);
+			part.writeInto(operationsLog);
+		}
+
+		@Override
+		public void write(final byte[] buffer, final int bufferOffset, final int bytesToWrite, final long fileOffset) throws Exception {
+			// Get the bytes to write
+			byte[] bytes = Arrays.copyOfRange(buffer, bufferOffset, bufferOffset + bytesToWrite);
+
+			// Write into the local cache until a flush is requested
+			ensureOperationsLog();
+			LogBlobPart part = LogBlobPart.createWritePart(fileOffset, bytes);
+			part.writeInto(operationsLog);
 		}
 
 		@Override
@@ -220,25 +269,6 @@ public class CloudFileSystem implements FileSystem {
 			}
 		}
 
-		@Override
-		public void setLength(final long newLength) throws Exception {
-			// Write into the local cache until a flush is requested
-			ensureOperationsLog();
-			LogBlobPart part = LogBlobPart.createSetLengthPart(newLength);
-			part.writeInto(operationsLog);
-		}
-
-		@Override
-		public void write(final byte[] buffer, final int bufferOffset, final int bytesToWrite, final long fileOffset) throws Exception {
-			//Get the bytes to write
-			byte[] bytes = Arrays.copyOfRange(buffer, bufferOffset, bufferOffset + bytesToWrite);
-
-			// Write into the local cache until a flush is requested
-			ensureOperationsLog();
-			LogBlobPart part = LogBlobPart.createWritePart(fileOffset, bytes);
-			part.writeInto(operationsLog);
-		}
-
 		private void updateLocalCacheBlob() {
 			/*
 			 * Combine the local cache blob and the log records, if possible.
@@ -248,9 +278,48 @@ public class CloudFileSystem implements FileSystem {
 			 * directly from the log, because the local cache log records only
 			 * reflect what we wrote into the file, not what others wrote.
 			 */
-			Date localCacheBlobTs = localCache.getTimestamp(blobName, LOCAL_CACHE_BLOB, null);
-
-			try (AbsoluteByteWriter lcw = localCache.openAbsoluteWriter(blobName, LOCAL_CACHE_BLOB)) {
+			Date localCacheBlobTs = localCache.getTimestamp(blobName, LOCAL_CACHE_BLOB);
+			HashMap<String,String> meta = blobStore.readMeta(blobName);
+			Date blobTs = toDate(meta.get(META_LATEST_LOG_RECORD_TIMESTAMP));
+			
+			//Decide if we have to start from the local cache or from the blob store
+			//based on localCacheBlobTs and blobTs; use a coefficient to favor the local cache
+			TODO;
+			
+			//Then update the local cache
+			try (AbsoluteByteWriter writer = localCache.openAbsoluteWriter(blobName, LOCAL_CACHE_BLOB)) {
+				//If starting from the blob store copy the blob
+				
+				//Then apply the log records
+				//Read all the log records that we have to apply
+				ArrayList<LogBlobIndexEntry> logBlobEntries = new ArrayList<LogBlobIndexEntry>();
+				FileBlobIndexEntry blobEntry = index.readFileBlobEntry(blobName);
+				String logBlobName = blobEntry.latestLogBlobName;
+				
+				while(logBlobName != null && !logBlobName.isEmpty()){
+					LogBlobIndexEntry logBlobEntry = index.readLogBlobEntry(logBlobName);
+					if(logBlobEntry.creationTimestamp.compareTo(threshold)>=0){
+						//This log entry has to be applied
+					logBlobEntries.add(logBlobEntry);
+					
+					//Go to previous
+					logBlobName =logBlobEntry.previousLogBlobName;
+					}
+					else {
+						//We reached over the threshold. We are not interested in any more log entries
+						break;
+					}
+				}
+				
+				//We now have to apply the log entries in the correct order (from oldest to newest)
+				Collections.reverse(logBlobEntries);
+				
+				//Apply
+				for(LogBlobIndexEntry logBlobEntry:logBlobEntries){
+					//Read from the blob store and write into local cache
+				}
+				
+				
 				boolean first = true;
 				for (LogEntry le : log.list(entry.blobName, localCacheBlobTs)) {
 					if (first) {
