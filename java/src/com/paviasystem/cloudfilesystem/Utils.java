@@ -1,7 +1,5 @@
 package com.paviasystem.cloudfilesystem;
 
-import com.paviasystem.cloudfilesystem.blocks.ByteReader;
-import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;

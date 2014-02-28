@@ -5,7 +5,7 @@ import java.util.HashMap;
 public interface BlobStore {
 	HashMap<String, String> readMeta(String blobName);
 
-	ByteReader read(String name);
+	ByteReader read(String name, HashMap<String, String> outMetaData);
 
 	ByteWriter write(String name, HashMap<String, String> metaData);
 

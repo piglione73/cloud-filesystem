@@ -26,6 +26,8 @@ public class CloudFileSystem implements FileSystem {
 	final static String LOCAL_CACHE_BLOB = "blob";
 	final static String LOCAL_CACHE_OPS = "ops";
 
+	public static final String META_LATEST_LOG_RECORD_TIMESTAMP = "LatestLogTimestamp";
+
 	final BlobStore blobStore;
 	final Index index;
 	final LocalCache localCache;
@@ -279,81 +281,63 @@ public class CloudFileSystem implements FileSystem {
 			 * reflect what we wrote into the file, not what others wrote.
 			 */
 			Date localCacheBlobTs = localCache.getTimestamp(blobName, LOCAL_CACHE_BLOB);
-			HashMap<String,String> meta = blobStore.readMeta(blobName);
+			HashMap<String, String> meta = blobStore.readMeta(blobName);
 			Date blobTs = toDate(meta.get(META_LATEST_LOG_RECORD_TIMESTAMP));
-			
+
 			//Decide if we have to start from the local cache or from the blob store
 			//based on localCacheBlobTs and blobTs; use a coefficient to favor the local cache
 			TODO;
-			
+
+			// If the timestamp of the first log entry returned is
+			// before localCacheBlobTs, then we are sure that our
+			// local
+			// cache blob contains enough information. Otherwise,
+			// we'll
+			// have to hit the blob store if we want to read
+			// meaningful
+			// data. In fact, if the timestamp of the first log
+			// entry
+			// returned is after localCacheBlobTs, then we cannot be
+			// sure that we are not losing data (maybe, the log has
+			// been
+			// cleaned and our local cache blob has fallen behind
+			// the
+			// log clean horizon)
+
 			//Then update the local cache
 			try (AbsoluteByteWriter writer = localCache.openAbsoluteWriter(blobName, LOCAL_CACHE_BLOB)) {
 				//If starting from the blob store copy the blob
-				
+
 				//Then apply the log records
 				//Read all the log records that we have to apply
 				ArrayList<LogBlobIndexEntry> logBlobEntries = new ArrayList<LogBlobIndexEntry>();
 				FileBlobIndexEntry blobEntry = index.readFileBlobEntry(blobName);
 				String logBlobName = blobEntry.latestLogBlobName;
-				
-				while(logBlobName != null && !logBlobName.isEmpty()){
+
+				while (logBlobName != null && !logBlobName.isEmpty()) {
 					LogBlobIndexEntry logBlobEntry = index.readLogBlobEntry(logBlobName);
-					if(logBlobEntry.creationTimestamp.compareTo(threshold)>=0){
+					if (logBlobEntry.creationTimestamp.compareTo(threshold) >= 0) {
 						//This log entry has to be applied
-					logBlobEntries.add(logBlobEntry);
-					
-					//Go to previous
-					logBlobName =logBlobEntry.previousLogBlobName;
-					}
-					else {
-						//We reached over the threshold. We are not interested in any more log entries
+						logBlobEntries.add(logBlobEntry);
+
+						//Go to previous
+						logBlobName = logBlobEntry.previousLogBlobName;
+					} else {
+						//We arrived over the threshold. We are not interested in any additional log entries
 						break;
 					}
 				}
-				
+
 				//We now have to apply the log entries in the correct order (from oldest to newest)
 				Collections.reverse(logBlobEntries);
-				
-				//Apply
-				for(LogBlobIndexEntry logBlobEntry:logBlobEntries){
-					//Read from the blob store and write into local cache
-				}
-				
-				
-				boolean first = true;
-				for (LogEntry le : log.list(entry.blobName, localCacheBlobTs)) {
-					if (first) {
-						first = false;
 
-						// If the timestamp of the first log entry returned is
-						// before localCacheBlobTs, then we are sure that our
-						// local
-						// cache blob contains enough information. Otherwise,
-						// we'll
-						// have to hit the blob store if we want to read
-						// meaningful
-						// data. In fact, if the timestamp of the first log
-						// entry
-						// returned is after localCacheBlobTs, then we cannot be
-						// sure that we are not losing data (maybe, the log has
-						// been
-						// cleaned and our local cache blob has fallen behind
-						// the
-						// log clean horizon)
-						if (localCacheBlobTs.after(le.timestamp)) {
-							// We can use the local cache blob as a starting
-							// point
-							// We just go on
-						} else {
-							// We cannot use the local cache blob as a starting
-							// point, we must use the blob store
-							updateLocalCacheBlobFromBlobStore(lcw);
-							return;
-						}
+				//Apply all the log entries to the local cache
+				for (LogBlobIndexEntry logBlobEntry : logBlobEntries) {
+					//Apply each part of this log entry
+					try (ByteReader reader = blobStore.read(logBlobEntry.logBlobName)) {
+						for (LogBlobPart part = LogBlobPart.readFrom(reader); part != null; part = LogBlobPart.readFrom(reader))
+							part.applyTo(writer);
 					}
-
-					// Let's apply the log entry to the local cache blob
-					applyLogEntryToLocalCacheBlob(le, lcw);
 				}
 			}
 		}

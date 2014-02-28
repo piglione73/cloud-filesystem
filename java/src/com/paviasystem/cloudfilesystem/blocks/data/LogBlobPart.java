@@ -2,6 +2,7 @@ package com.paviasystem.cloudfilesystem.blocks.data;
 
 import java.nio.ByteBuffer;
 
+import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.ByteReader;
 import com.paviasystem.cloudfilesystem.blocks.ByteReaderUtils;
 import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
@@ -15,6 +16,27 @@ public class LogBlobPart {
 	public long destOffset;
 	public byte[] bytes;
 
+	/**
+	 * Apply the changes specified in this LogBlobPart to an AbsoluteByteWriter.
+	 * 
+	 * @param writer
+	 * @throws Exception
+	 */
+	public void applyTo(AbsoluteByteWriter writer) throws Exception {
+		if (type == SET_LENGTH)
+			writer.setLength(newLength);
+		else if (type == WRITE)
+			writer.write(bytes, 0, bytes.length, destOffset);
+		else
+			throw new Exception("Invalid type");
+	}
+
+	/**
+	 * Serialize into a ByteWriter.
+	 * 
+	 * @param writer
+	 * @throws Exception
+	 */
 	public void writeInto(ByteWriter writer) throws Exception {
 		byte[] buf;
 
@@ -28,6 +50,13 @@ public class LogBlobPart {
 		writer.write(buf, 0, buf.length);
 	}
 
+	/**
+	 * Deserialize from a ByteReader
+	 * 
+	 * @param reader
+	 * @return
+	 * @throws Exception
+	 */
 	public static LogBlobPart readFrom(ByteReader reader) throws Exception {
 		byte[] buf = new byte[13];
 		ByteBuffer bytes = ByteBuffer.wrap(buf);
@@ -69,4 +98,5 @@ public class LogBlobPart {
 
 		return part;
 	}
+
 }
