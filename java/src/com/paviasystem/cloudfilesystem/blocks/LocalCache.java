@@ -1,7 +1,5 @@
 package com.paviasystem.cloudfilesystem.blocks;
 
-import java.util.Date;
-
 public interface LocalCache {
 	ByteWriter openSequentialWriter(String category, String name);
 
@@ -13,5 +11,7 @@ public interface LocalCache {
 
 	void delete(String category, String name);
 
-	Date getTimestamp(String category, String name);
+	String getLatestLogBlobName(String category, String name);
+
+	void setLatestLogBlobName(String category, String name, String latestLogBlobName);
 }

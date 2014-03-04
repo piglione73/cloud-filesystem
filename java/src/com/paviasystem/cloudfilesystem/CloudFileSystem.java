@@ -26,7 +26,7 @@ public class CloudFileSystem implements FileSystem {
 	final static String LOCAL_CACHE_BLOB = "blob";
 	final static String LOCAL_CACHE_OPS = "ops";
 
-	public static final String META_LATEST_LOG_RECORD_TIMESTAMP = "LatestLogTimestamp";
+	public static final String META_LATEST_LOG_BLOB_NAME = "LatestLogBlobName";
 
 	final BlobStore blobStore;
 	final Index index;
@@ -280,13 +280,22 @@ public class CloudFileSystem implements FileSystem {
 			 * directly from the log, because the local cache log records only
 			 * reflect what we wrote into the file, not what others wrote.
 			 */
-			Date localCacheBlobTs = localCache.getTimestamp(blobName, LOCAL_CACHE_BLOB);
-			HashMap<String, String> meta = blobStore.readMeta(blobName);
-			Date blobTs = toDate(meta.get(META_LATEST_LOG_RECORD_TIMESTAMP));
+			String localCacheLatestLogBlobName = localCache.getLatestLogBlobName(blobName, LOCAL_CACHE_BLOB);
+			
+			/*
+			 * Let's first try to see if we can use the local cache without hitting the blob store.
+			 * 
+			 * Read all the log entries up to (and excluding) localCacheLatestBlobName (which is already embedded into the local cache blob).
+			 */
+			FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(blobName);
+			ArrayList<LogBlobIndexEntry> logEntries = Utils.getLogBlobIndexEntries(index, fileBlobEntry, localCacheLatestLogBlobName);
+			HashMap<String, String> fileBlobMeta = blobStore.readMeta(blobName);
+			String fileBlobLatestLogBlobName = fileBlobMeta.get(META_LATEST_LOG_BLOB_NAME);
 
-			//Decide if we have to start from the local cache or from the blob store
-			//based on localCacheBlobTs and blobTs; use a coefficient to favor the local cache
-			TODO;
+			// Decide if we have to start from the local cache or from the blob
+			// store
+			// based on localCacheBlobTs and blobTs; use a coefficient to favor
+			// the local cache
 
 			// If the timestamp of the first log entry returned is
 			// before localCacheBlobTs, then we are sure that our
@@ -304,12 +313,12 @@ public class CloudFileSystem implements FileSystem {
 			// the
 			// log clean horizon)
 
-			//Then update the local cache
+			// Then update the local cache
 			try (AbsoluteByteWriter writer = localCache.openAbsoluteWriter(blobName, LOCAL_CACHE_BLOB)) {
-				//If starting from the blob store copy the blob
+				// If starting from the blob store copy the blob
 
-				//Then apply the log records
-				//Read all the log records that we have to apply
+				// Then apply the log records
+				// Read all the log records that we have to apply
 				ArrayList<LogBlobIndexEntry> logBlobEntries = new ArrayList<LogBlobIndexEntry>();
 				FileBlobIndexEntry blobEntry = index.readFileBlobEntry(blobName);
 				String logBlobName = blobEntry.latestLogBlobName;
@@ -317,23 +326,25 @@ public class CloudFileSystem implements FileSystem {
 				while (logBlobName != null && !logBlobName.isEmpty()) {
 					LogBlobIndexEntry logBlobEntry = index.readLogBlobEntry(logBlobName);
 					if (logBlobEntry.creationTimestamp.compareTo(threshold) >= 0) {
-						//This log entry has to be applied
+						// This log entry has to be applied
 						logBlobEntries.add(logBlobEntry);
 
-						//Go to previous
+						// Go to previous
 						logBlobName = logBlobEntry.previousLogBlobName;
 					} else {
-						//We arrived over the threshold. We are not interested in any additional log entries
+						// We arrived over the threshold. We are not interested
+						// in any additional log entries
 						break;
 					}
 				}
 
-				//We now have to apply the log entries in the correct order (from oldest to newest)
+				// We now have to apply the log entries in the correct order
+				// (from oldest to newest)
 				Collections.reverse(logBlobEntries);
 
-				//Apply all the log entries to the local cache
+				// Apply all the log entries to the local cache
 				for (LogBlobIndexEntry logBlobEntry : logBlobEntries) {
-					//Apply each part of this log entry
+					// Apply each part of this log entry
 					try (ByteReader reader = blobStore.read(logBlobEntry.logBlobName)) {
 						for (LogBlobPart part = LogBlobPart.readFrom(reader); part != null; part = LogBlobPart.readFrom(reader))
 							part.applyTo(writer);
