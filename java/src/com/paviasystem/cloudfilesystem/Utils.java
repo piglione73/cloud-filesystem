@@ -1,6 +1,6 @@
 package com.paviasystem.cloudfilesystem;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
@@ -42,25 +42,48 @@ class Utils {
 
 	/**
 	 * Given a FileBlobIndexEntry, returns the list of log entries that have to
-	 * be applied. Reads log lob entries starting from logBlobNameFrom
+	 * be applied. Reads log lob entries starting from logBlobNameFrom1/2
 	 * (excluded) up to logBlobNameTo (included). Since log entries are stored
-	 * as a linked list in reverse order, the methods actually starts from
+	 * as a linked list in reverse order, the method actually starts from
 	 * logBlobNameTo and proceeds backwards up to (and excluding)
-	 * logBlobNameFrom. Since a log cleaner thread might be active, it is not
-	 * guaranteed that the method can reach logBlobNameFrom.
+	 * logBlobNameFrom1 or logBlobNameFrom2, whichever comes first. Since a log
+	 * cleaner thread might be active, it is not guaranteed that the method can
+	 * reach logBlobNameFrom1/2.
 	 * 
 	 * @param index
-	 * @param logBlobNameFrom
+	 * @param logBlobNameFrom1
+	 * @param logBlobNameFrom2
 	 * @param logBlobNameTo
 	 * @return
 	 */
-	public static ArrayList<LogBlobIndexEntry> getLogBlobIndexEntries(Index index, String logBlobNameFrom, String logBlobNameTo) {
-		ArrayList<LogBlobIndexEntry> entries = new ArrayList<LogBlobIndexEntry>();
-		
+	public static LinkedList<LogBlobIndexEntry> getLogBlobIndexEntries(Index index, String logBlobNameFrom1, String logBlobNameFrom2, String logBlobNameTo) {
+		LinkedList<LogBlobIndexEntry> entries = new LinkedList<LogBlobIndexEntry>();
+
 		//Read backwards up to and excluding logBlobNameFrom
 		String nextLogBlobNameToRead = logBlobNameTo;
-		while(true) {
-			int logBlobEntry = index.readLogBlobEntry(nextLogBlobNameToRead);
+		while (true) {
+			LogBlobIndexEntry logBlobEntry = index.readLogBlobEntry(nextLogBlobNameToRead);
+			if (logBlobEntry == null) {
+				//If not found, stop
+				break;
+			}
+
+			//If found, store
+			entries.addFirst(logBlobEntry);
+
+			//Then prepare to read the subsequent element
+			nextLogBlobNameToRead = logBlobEntry.previousLogBlobName;
+
+			//If we reached the end, stop
+			if (nextLogBlobNameToRead == null || nextLogBlobNameToRead.trim().isEmpty()) {
+				//Reached the first log entry, so we cannot proceed any further
+				break;
+			} else if (nextLogBlobNameToRead.equals(logBlobNameFrom1) || nextLogBlobNameToRead.equals(logBlobNameFrom2)) {
+				//Reached logBlobNameFrom1/2, so we are required to stop
+				break;
+			}
 		}
+
+		return entries;
 	}
 }

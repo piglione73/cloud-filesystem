@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.UUID;
 
 import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteReader;
@@ -288,7 +289,7 @@ public class CloudFileSystem implements FileSystem {
 			 * Read all the log entries up to (and excluding) localCacheLatestBlobName (which is already embedded into the local cache blob).
 			 */
 			FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(blobName);
-			ArrayList<LogBlobIndexEntry> logEntries = Utils.getLogBlobIndexEntries(index, fileBlobEntry, localCacheLatestLogBlobName);
+			LinkedList<LogBlobIndexEntry> logEntries = Utils.getLogBlobIndexEntries(index, localCacheLatestLogBlobName, fileBlobEntry.latestLogBlobName);
 			HashMap<String, String> fileBlobMeta = blobStore.readMeta(blobName);
 			String fileBlobLatestLogBlobName = fileBlobMeta.get(META_LATEST_LOG_BLOB_NAME);
 
