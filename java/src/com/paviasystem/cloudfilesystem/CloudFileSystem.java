@@ -282,16 +282,19 @@ public class CloudFileSystem implements FileSystem {
 			 * reflect what we wrote into the file, not what others wrote.
 			 */
 			String localCacheLatestLogBlobName = localCache.getLatestLogBlobName(blobName, LOCAL_CACHE_BLOB);
-			
+
 			/*
-			 * Let's first try to see if we can use the local cache without hitting the blob store.
+			 * Let's first try to see if we can use the local cache without
+			 * hitting the blob store.
 			 * 
-			 * Read all the log entries up to (and excluding) localCacheLatestBlobName (which is already embedded into the local cache blob).
+			 * Read all the log entries up to (and excluding)
+			 * localCacheLatestBlobName (which is already embedded into the
+			 * local cache blob).
 			 */
-			FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(blobName);
-			LinkedList<LogBlobIndexEntry> logEntries = Utils.getLogBlobIndexEntries(index, localCacheLatestLogBlobName, fileBlobEntry.latestLogBlobName);
 			HashMap<String, String> fileBlobMeta = blobStore.readMeta(blobName);
 			String fileBlobLatestLogBlobName = fileBlobMeta.get(META_LATEST_LOG_BLOB_NAME);
+			FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(blobName);
+			LinkedList<LogBlobIndexEntry> logEntries = Utils.getLogBlobIndexEntries(index, fileBlobLatestLogBlobName, localCacheLatestLogBlobName, fileBlobEntry.latestLogBlobName);
 
 			// Decide if we have to start from the local cache or from the blob
 			// store
