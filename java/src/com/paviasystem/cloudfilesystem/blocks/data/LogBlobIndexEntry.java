@@ -3,8 +3,9 @@ package com.paviasystem.cloudfilesystem.blocks.data;
 import java.util.Date;
 
 public class LogBlobIndexEntry {
-	public String logBlobName;
+	public long logBlobLsn;
+	public String logBlobRandomId;
 	public String fileBlobName;
-	public String previousLogBlobName;
+	public String previousLogBlobRandomId;
 	public Date creationTimestamp;
 }

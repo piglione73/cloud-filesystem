@@ -131,7 +131,8 @@ public class CloudFileSystem implements FileSystem {
 
 				FileBlobIndexEntry blobEntry = new FileBlobIndexEntry();
 				blobEntry.fileBlobName = fileEntry.blobName;
-				blobEntry.latestLogBlobName = "";
+				blobEntry.latestLogBlobLsn = -1;
+				blobEntry.latestLogBlobRandomId = null;
 				blobEntry.length = 0;
 				blobEntry.creationTimestamp = new Date();
 				blobEntry.lastEditTimestamp = blobEntry.creationTimestamp;
@@ -184,10 +185,10 @@ public class CloudFileSystem implements FileSystem {
 			// Then, copy the log parts into the blob store. Meanwhile, read the
 			// log parts and determine the offset of the lowest unaffected byte
 			// (so we can later consistently determine the new file length)
-			String logBlobName = UUID.randomUUID().toString();
+			String logBlobRandomId = UUID.randomUUID().toString();
 			long lowestUnaffectedOffset = 0;
 			try (ByteReader reader = localCache.openSequentialReader(blobName, LOCAL_CACHE_OPS)) {
-				try (ByteWriter writer = blobStore.write(logBlobName, null)) {
+				try (ByteWriter writer = blobStore.write(logBlobRandomId, null)) {
 					for (LogBlobPart part = LogBlobPart.readFrom(reader); part != null; part = LogBlobPart.readFrom(reader)) {
 						// Measure...
 						if (part.type == LogBlobPart.SET_LENGTH)
@@ -213,7 +214,6 @@ public class CloudFileSystem implements FileSystem {
 				// Let's see what is the current log entry, so we attach our new
 				// log blob index entry to it
 				FileBlobIndexEntry blobEntry = index.readFileBlobEntry(blobName);
-				String latestLogBlobName = blobEntry.latestLogBlobName;
 
 				// Determine the new length by combining the current length and
 				// the measurements made on the log parts
@@ -222,16 +222,17 @@ public class CloudFileSystem implements FileSystem {
 				// Register the log blob in the index and attach it to the
 				// latest log blob name
 				LogBlobIndexEntry lbie = new LogBlobIndexEntry();
-				lbie.logBlobName = logBlobName;
+				lbie.logBlobLsn = blobEntry.latestLogBlobLsn + 1;
+				lbie.logBlobRandomId = logBlobRandomId;
 				lbie.fileBlobName = blobName;
-				lbie.previousLogBlobName = latestLogBlobName;
+				lbie.previousLogBlobRandomId = blobEntry.latestLogBlobRandomId;
 				lbie.creationTimestamp = new Date();
 
 				index.writeLogBlobEntry(lbie);
 
 				// Then update the file blob entry, but only if it hasn't
 				// changed
-				if (index.updateFileBlobEntry(blobName, latestLogBlobName, logBlobName, newLength, new Date())) {
+				if (index.updateFileBlobEntry(blobName, blobEntry.latestLogBlobLsn, blobEntry.latestLogBlobRandomId, lbie.logBlobLsn, lbie.logBlobRandomId, newLength, new Date())) {
 					// Ok, we consistently updated the file blob entry, so we
 					// are done
 					break;
@@ -285,7 +286,8 @@ public class CloudFileSystem implements FileSystem {
 
 			/*
 			 * Let's first try to see if we can use the local cache without
-			 * hitting the blob store.
+			 * hitting the blob store. Get
+			 * localCacheLatestLogLsn/localCacheLatestRandomId.
 			 * 
 			 * Read all the log entries up to (and excluding)
 			 * localCacheLatestBlobName (which is already embedded into the

@@ -21,7 +21,7 @@ public interface Index {
 
 	void createFileBlobEntry(FileBlobIndexEntry blobEntry);
 
-	boolean updateFileBlobEntry(String fileBlobName, String oldLatestLogBlobName, String newLatestLogBlobName, long newLength, Date newLastEditTimestamp);
+	boolean updateFileBlobEntry(String fileBlobName, long oldLatestLogBlobLsn, String oldLatestLogBlobRandomId, long newLatestLogBlobLsn, String newLatestLogBlobRandomId, long newLength, Date newLastEditTimestamp);
 
 	LogBlobIndexEntry readLogBlobEntry(String logBlobName);
 
