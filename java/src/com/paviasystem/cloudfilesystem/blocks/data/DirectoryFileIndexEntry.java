@@ -4,6 +4,6 @@ public class DirectoryFileIndexEntry {
 	public String absolutePath;
 	public boolean isFile;
 	public boolean isSoftLink;
-	public String blobName;
+	public String fileBlobName;
 	public String targetAbsolutePath;
 }

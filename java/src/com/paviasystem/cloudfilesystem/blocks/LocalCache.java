@@ -10,8 +10,4 @@ public interface LocalCache {
 	AbsoluteByteWriter openAbsoluteWriter(String category, String name);
 
 	void delete(String category, String name);
-
-	String getLatestLogBlobName(String category, String name);
-
-	void setLatestLogBlobName(String category, String name, String latestLogBlobName);
 }

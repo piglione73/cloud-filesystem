@@ -33,9 +33,9 @@ class Utils {
 		}
 
 		// If regular file, get file blob index entry
-		FileBlobIndexEntry blobEntry = index.readFileBlobEntry(fileEntry.blobName);
+		FileBlobIndexEntry blobEntry = index.readFileBlobEntry(fileEntry.fileBlobName);
 		if (blobEntry == null)
-			throw new Exception("Missing blob: " + fileEntry.absolutePath + " --> " + fileEntry.blobName);
+			throw new Exception("Missing blob: " + fileEntry.absolutePath + " --> " + fileEntry.fileBlobName);
 
 		return blobEntry;
 	}

@@ -69,9 +69,16 @@ public class LogBlobPart {
 		part.type = bytes.get();
 
 		// Read the rest, based on type
-		if (part.type == SET_LENGTH)
+		if (part.type == SET_LENGTH){
+			if (!ByteReaderUtils.readExact(reader, buf, 1, 8))
+				return null;
+			
 			part.newLength = bytes.getLong();
+		}
 		else if (part.type == WRITE) {
+			if (!ByteReaderUtils.readExact(reader, buf, 1, 12))
+				return null;
+			
 			part.destOffset = bytes.getLong();
 			part.bytes = new byte[bytes.getInt()];
 			if (!ByteReaderUtils.readExact(reader, part.bytes, 0, part.bytes.length))
