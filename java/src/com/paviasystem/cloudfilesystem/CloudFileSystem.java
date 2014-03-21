@@ -21,21 +21,20 @@ import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobKey;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobPart;
+import com.paviasystem.cloudfilesystem.blocks.drivers.IndexDriver;
 import com.paviasystem.cloudfilesystem.blocks.drivers.LocalCacheDriver;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
 public class CloudFileSystem implements FileSystem {
-	public static final String META_LATEST_LOG_BLOB_NAME = "LatestLogBlobName";
-
 	final BlobStore blobStore;
-	final Index index;
+	final IndexDriver index;
 	final LocalCacheDriver localCache;
 	final LockManager lockManager;
 	final LazyMirroring lazyMirroring;
 
 	public CloudFileSystem(Index index) {
 		this.blobStore = null;
-		this.index = index;
+		this.index = new IndexDriver(index);
 		this.localCache = null;
 		this.lockManager = null;
 		this.lazyMirroring = null;
@@ -282,6 +281,39 @@ public class CloudFileSystem implements FileSystem {
 			 */
 			//What is the latest log record incorporated into the local cache blob?
 			LogBlobKey localCacheLatestLogBlobKey = localCache.getLatestLogBlobKey(fileBlobName);
+			long localCacheLatestLogBlobLsn = localCacheLatestLogBlobKey.logBlobLsn;
+			String localCacheLatestLogBlobRandomId = localCacheLatestLogBlobKey.logBlobRandomId;
+
+			//What is the latest log record written into the file?
+			FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(fileBlobName);
+			long latestLogBlobLsn = fileBlobEntry.latestLogBlobLsn;
+			String latestLogBlobRandomId = fileBlobEntry.latestLogBlobRandomId;
+
+			//Let's decide what to do next
+			boolean useBlobStore;
+			if (localCacheLatestLogBlobLsn >= 0) {
+				/*
+				 * We have a local cache blob and it incorporates all the log
+				 * records from the beginning up to and including
+				 * localCacheLatestLogBlobLsn. Then, we must incorporate all the
+				 * log records from localCacheLatestLogBlobLsn+1 up to
+				 * latestLogBlobLsn.
+				 * 
+				 * However, this is not always possible. A log-cleaning thread
+				 * could have deleted the "localCacheLatestLogBlobLsn+1" log
+				 * record. In that case we would have to use the blob store.
+				 * 
+				 * We optimistically try to read the log records and then, if at
+				 * least one is missing, we use the blob store.
+				 */
+			} else {
+				/*
+				 * We don't have a local cache blob, so we must start from the
+				 * blob store
+				 */
+				useBlobStore = true;
+			}
+
 			/*
 			 * Combine the local cache blob and the log records, if possible.
 			 * Otherwise, get the blob from the blob store and combine it with
@@ -303,7 +335,6 @@ public class CloudFileSystem implements FileSystem {
 			 */
 			HashMap<String, String> fileBlobMeta = blobStore.readMeta(fileBlobName);
 			String fileBlobLatestLogBlobName = fileBlobMeta.get(META_LATEST_LOG_BLOB_NAME);
-			FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(fileBlobName);
 			LinkedList<LogBlobIndexEntry> logEntries = Utils.getLogBlobIndexEntries(index, fileBlobLatestLogBlobName, localCacheLatestLogBlobName, fileBlobEntry.latestLogBlobName);
 
 			// Decide if we have to start from the local cache or from the blob

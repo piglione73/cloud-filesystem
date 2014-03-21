@@ -23,7 +23,7 @@ public interface Index {
 
 	boolean updateFileBlobEntry(String fileBlobName, long oldLatestLogBlobLsn, String oldLatestLogBlobRandomId, long newLatestLogBlobLsn, String newLatestLogBlobRandomId, long newLength, Date newLastEditTimestamp);
 
-	LogBlobIndexEntry readLogBlobEntry(String logBlobName);
+	Iterable<LogBlobIndexEntry> readLogBlobEntries(String fileBlobName, long lsn1, long lsn2);
 
-	void writeLogBlobEntry(LogBlobIndexEntry entry);
+	void writeLogBlobEntry(LogBlobIndexEntry logBlobEntry);
 }
