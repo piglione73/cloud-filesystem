@@ -3,14 +3,11 @@ package com.paviasystem.cloudfilesystem.blocks;
 import java.util.HashMap;
 
 public interface BlobStore {
-	HashMap<String, String> readMeta(String blobName);
-
-	ByteReader read(String name, HashMap<String, String> outMetaData);
-
-	ByteWriter write(String name, HashMap<String, String> metaData);
-
-	void delete(String name);
-
 	Iterable<String> list(String prefix);
 
+	ByteReader read(String key, HashMap<String, String> outMetaData);
+
+	ByteWriter write(String key, HashMap<String, String> metaData);
+
+	void delete(String key);
 }

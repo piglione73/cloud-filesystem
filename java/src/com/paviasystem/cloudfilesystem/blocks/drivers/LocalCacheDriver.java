@@ -12,38 +12,38 @@ import com.paviasystem.cloudfilesystem.blocks.LocalCache;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobKey;
 
 public class LocalCacheDriver {
-	final static String LOCAL_CACHE_BLOB = "blob";
-	final static String LOCAL_CACHE_OPS = "ops";
-	final static String LOCAL_CACHE_LATEST_LOG_BLOB_KEY = "latest";
+	final static String BLOB = "blob";
+	final static String OPS = "ops";
+	final static String LATEST_LOG_BLOB_KEY = "latest";
 
-	LocalCache localCache;
+	private LocalCache localCache;
 
 	public LocalCacheDriver(LocalCache localCache) {
 		this.localCache = localCache;
 	}
 
 	public ByteWriter openLogWriter(String fileBlobName) {
-		return localCache.openSequentialWriter(fileBlobName, LOCAL_CACHE_OPS);
+		return localCache.openSequentialWriter(fileBlobName, OPS);
 	}
 
 	public ByteReader openLogReader(String fileBlobName) {
-		return localCache.openSequentialReader(fileBlobName, LOCAL_CACHE_OPS);
+		return localCache.openSequentialReader(fileBlobName, OPS);
 	}
 
 	public void deleteLog(String fileBlobName) {
-		localCache.delete(fileBlobName, LOCAL_CACHE_OPS);
+		localCache.delete(fileBlobName, OPS);
 	}
 
 	public AbsoluteByteReader openBlobReader(String fileBlobName) {
-		return localCache.openAbsoluteReader(fileBlobName, LOCAL_CACHE_BLOB);
+		return localCache.openAbsoluteReader(fileBlobName, BLOB);
 	}
 
 	public AbsoluteByteWriter openBlobWriter(String fileBlobName) {
-		return localCache.openAbsoluteWriter(fileBlobName, LOCAL_CACHE_BLOB);
+		return localCache.openAbsoluteWriter(fileBlobName, BLOB);
 	}
 
 	public LogBlobKey getLatestLogBlobKey(String fileBlobName) throws Exception {
-		try (ByteReader reader = localCache.openSequentialReader(fileBlobName, LOCAL_CACHE_LATEST_LOG_BLOB_KEY)) {
+		try (ByteReader reader = localCache.openSequentialReader(fileBlobName, LATEST_LOG_BLOB_KEY)) {
 			byte[] buf = new byte[13];
 			ByteBuffer bytes = ByteBuffer.wrap(buf);
 
@@ -69,7 +69,7 @@ public class LocalCacheDriver {
 	}
 
 	public void setLatestLogBlobKey(String fileBlobName, LogBlobKey key) throws Exception {
-		try (ByteWriter writer = localCache.openSequentialWriter(fileBlobName, LOCAL_CACHE_LATEST_LOG_BLOB_KEY)) {
+		try (ByteWriter writer = localCache.openSequentialWriter(fileBlobName, LATEST_LOG_BLOB_KEY)) {
 			ByteBuffer bytes = ByteBuffer.allocate(256);
 
 			//LSN

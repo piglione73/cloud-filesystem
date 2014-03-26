@@ -7,7 +7,7 @@ import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 
 public class IndexDriver implements Index {
-	Index index;
+	private Index index;
 
 	public IndexDriver(Index index) {
 		this.index = index;

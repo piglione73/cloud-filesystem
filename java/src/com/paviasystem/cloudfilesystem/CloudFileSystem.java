@@ -2,9 +2,7 @@ package com.paviasystem.cloudfilesystem;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.UUID;
 
@@ -12,30 +10,34 @@ import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteReader;
 import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.BlobStore;
 import com.paviasystem.cloudfilesystem.blocks.ByteReader;
+import com.paviasystem.cloudfilesystem.blocks.ByteReaderUtils;
 import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.LazyMirroring;
+import com.paviasystem.cloudfilesystem.blocks.LocalCache;
 import com.paviasystem.cloudfilesystem.blocks.LockManager;
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobKey;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobPart;
+import com.paviasystem.cloudfilesystem.blocks.drivers.BlobStoreDriver;
+import com.paviasystem.cloudfilesystem.blocks.drivers.BlobStoreDriver.FileMetaData;
 import com.paviasystem.cloudfilesystem.blocks.drivers.IndexDriver;
 import com.paviasystem.cloudfilesystem.blocks.drivers.LocalCacheDriver;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
 public class CloudFileSystem implements FileSystem {
-	final BlobStore blobStore;
+	final BlobStoreDriver blobStore;
 	final IndexDriver index;
 	final LocalCacheDriver localCache;
 	final LockManager lockManager;
 	final LazyMirroring lazyMirroring;
 
-	public CloudFileSystem(Index index) {
-		this.blobStore = null;
+	public CloudFileSystem(BlobStore blobStore, Index index, LocalCache localCache) {
+		this.blobStore = new BlobStoreDriver(blobStore);
 		this.index = new IndexDriver(index);
-		this.localCache = null;
+		this.localCache = new LocalCacheDriver(localCache);
 		this.lockManager = null;
 		this.lazyMirroring = null;
 	}
@@ -185,7 +187,7 @@ public class CloudFileSystem implements FileSystem {
 			String logBlobRandomId = UUID.randomUUID().toString();
 			long lowestUnaffectedOffset = 0;
 			try (ByteReader reader = localCache.openLogReader(fileBlobName)) {
-				try (ByteWriter writer = blobStore.write(logBlobRandomId, null)) {
+				try (ByteWriter writer = blobStore.writeLogBlob(logBlobRandomId)) {
 					for (LogBlobPart part = LogBlobPart.readFrom(reader); part != null; part = LogBlobPart.readFrom(reader)) {
 						// Measure...
 						if (part.type == LogBlobPart.SET_LENGTH)
@@ -270,132 +272,110 @@ public class CloudFileSystem implements FileSystem {
 			}
 		}
 
-		private void updateLocalCacheBlob() {
-			/*
-			 * The purpose of this method is to update the local cache blob by
-			 * incorporating all the log records written after the local cache
-			 * blob was last updated.
-			 * 
-			 * This operation is not always possible. In case it is not
-			 * possible, we resort to the blob store directly.
-			 */
-			//What is the latest log record incorporated into the local cache blob?
-			LogBlobKey localCacheLatestLogBlobKey = localCache.getLatestLogBlobKey(fileBlobName);
-			long localCacheLatestLogBlobLsn = localCacheLatestLogBlobKey.logBlobLsn;
-			String localCacheLatestLogBlobRandomId = localCacheLatestLogBlobKey.logBlobRandomId;
-
-			//What is the latest log record written into the file?
-			FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(fileBlobName);
-			long latestLogBlobLsn = fileBlobEntry.latestLogBlobLsn;
-			String latestLogBlobRandomId = fileBlobEntry.latestLogBlobRandomId;
-
-			//Let's decide what to do next
-			boolean useBlobStore;
-			if (localCacheLatestLogBlobLsn >= 0) {
-				/*
-				 * We have a local cache blob and it incorporates all the log
-				 * records from the beginning up to and including
-				 * localCacheLatestLogBlobLsn. Then, we must incorporate all the
-				 * log records from localCacheLatestLogBlobLsn+1 up to
-				 * latestLogBlobLsn.
-				 * 
-				 * However, this is not always possible. A log-cleaning thread
-				 * could have deleted the "localCacheLatestLogBlobLsn+1" log
-				 * record. In that case we would have to use the blob store.
-				 * 
-				 * We optimistically try to read the log records and then, if at
-				 * least one is missing, we use the blob store.
-				 */
-			} else {
-				/*
-				 * We don't have a local cache blob, so we must start from the
-				 * blob store
-				 */
-				useBlobStore = true;
-			}
-
-			/*
-			 * Combine the local cache blob and the log records, if possible.
-			 * Otherwise, get the blob from the blob store and combine it with
-			 * the log records. At the end, the local cache blob is up-to-date
-			 * with the current file contents. Log records must be taken
-			 * directly from the log, because the local cache log records only
-			 * reflect what we wrote into the file, not what others wrote.
-			 */
-			String localCacheLatestLogBlobName = localCache.getLatestLogBlobName(fileBlobName, LOCAL_CACHE_BLOB);
-
-			/*
-			 * Let's first try to see if we can use the local cache without
-			 * hitting the blob store. Get
-			 * localCacheLatestLogLsn/localCacheLatestRandomId.
-			 * 
-			 * Read all the log entries up to (and excluding)
-			 * localCacheLatestBlobName (which is already embedded into the
-			 * local cache blob).
-			 */
-			HashMap<String, String> fileBlobMeta = blobStore.readMeta(fileBlobName);
-			String fileBlobLatestLogBlobName = fileBlobMeta.get(META_LATEST_LOG_BLOB_NAME);
-			LinkedList<LogBlobIndexEntry> logEntries = Utils.getLogBlobIndexEntries(index, fileBlobLatestLogBlobName, localCacheLatestLogBlobName, fileBlobEntry.latestLogBlobName);
-
-			// Decide if we have to start from the local cache or from the blob
-			// store
-			// based on localCacheBlobTs and blobTs; use a coefficient to favor
-			// the local cache
-
-			// If the timestamp of the first log entry returned is
-			// before localCacheBlobTs, then we are sure that our
-			// local
-			// cache blob contains enough information. Otherwise,
-			// we'll
-			// have to hit the blob store if we want to read
-			// meaningful
-			// data. In fact, if the timestamp of the first log
-			// entry
-			// returned is after localCacheBlobTs, then we cannot be
-			// sure that we are not losing data (maybe, the log has
-			// been
-			// cleaned and our local cache blob has fallen behind
-			// the
-			// log clean horizon)
-
-			// Then update the local cache
+		private void updateLocalCacheBlob() throws Exception {
 			try (AbsoluteByteWriter writer = localCache.openBlobWriter(fileBlobName)) {
-				// If starting from the blob store copy the blob
+				/*
+				 * The purpose of this method is to update the local cache blob
+				 * by incorporating all the log records written after the local
+				 * cache blob was last updated.
+				 * 
+				 * This operation is not always possible. In case it is not
+				 * possible, we resort to the blob store directly.
+				 */
+				//What is the latest log record incorporated into the local cache blob?
+				LogBlobKey localCacheLatestLogBlobKey = localCache.getLatestLogBlobKey(fileBlobName);
+				long localCacheLatestLogBlobLsn = localCacheLatestLogBlobKey.logBlobLsn;
+				String localCacheLatestLogBlobRandomId = localCacheLatestLogBlobKey.logBlobRandomId;
 
-				// Then apply the log records
-				// Read all the log records that we have to apply
-				ArrayList<LogBlobIndexEntry> logBlobEntries = new ArrayList<LogBlobIndexEntry>();
-				FileBlobIndexEntry blobEntry = index.readFileBlobEntry(fileBlobName);
-				String logBlobName = blobEntry.latestLogBlobName;
+				//What is the latest log record written into the file?
+				FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(fileBlobName);
+				long latestLogBlobLsn = fileBlobEntry.latestLogBlobLsn;
+				String latestLogBlobRandomId = fileBlobEntry.latestLogBlobRandomId;
 
-				while (logBlobName != null && !logBlobName.isEmpty()) {
-					LogBlobIndexEntry logBlobEntry = index.readLogBlobEntry(logBlobName);
-					if (logBlobEntry.creationTimestamp.compareTo(threshold) >= 0) {
-						// This log entry has to be applied
-						logBlobEntries.add(logBlobEntry);
+				//Let's decide what to do next
+				if (localCacheLatestLogBlobLsn >= 0) {
+					/*
+					 * We have a local cache blob and it incorporates all the
+					 * log records from the beginning up to and including
+					 * localCacheLatestLogBlobLsn. Then, we must incorporate all
+					 * the log records from localCacheLatestLogBlobLsn+1 up to
+					 * latestLogBlobLsn.
+					 * 
+					 * However, this is not always possible. A log-cleaning
+					 * thread could have deleted the
+					 * "localCacheLatestLogBlobLsn+1" log record. In that case
+					 * we would have to use the blob store.
+					 * 
+					 * We optimistically try to read the log records and then,
+					 * if at least one is missing, we use the blob store.
+					 */
+					LinkedList<LogBlobIndexEntry> logBlobEntries = index.readLogBlobEntries(fileBlobName, localCacheLatestLogBlobLsn, localCacheLatestLogBlobRandomId, latestLogBlobLsn, latestLogBlobRandomId);
 
-						// Go to previous
-						logBlobName = logBlobEntry.previousLogBlobName;
+					/*
+					 * The first might or might not be
+					 * localCacheLatestLogBlobLsn. Discard it! We want the first
+					 * item to be localCacheLatestLogBlobLsn+1
+					 */
+					while (!logBlobEntries.isEmpty() && logBlobEntries.peekFirst().logBlobLsn <= localCacheLatestLogBlobLsn)
+						logBlobEntries.removeFirst();
+
+					/*
+					 * Now, if the first item is localCacheLatestLogBlobLsn+1,
+					 * we can simply start from the local cache
+					 */
+					if (!logBlobEntries.isEmpty() && logBlobEntries.peekFirst().logBlobLsn == localCacheLatestLogBlobLsn + 1) {
+						//Start from the local cache
+						updateLocalCacheBlob_StartFromLocalCacheBlob(writer, logBlobEntries);
 					} else {
-						// We arrived over the threshold. We are not interested
-						// in any additional log entries
-						break;
+						//We don't have all the necessary log records, so let's start from the blob store
+						updateLocalCacheBlob_StartFromBlobStore(writer, logBlobEntries, latestLogBlobLsn, latestLogBlobRandomId);
 					}
-				}
-
-				// We now have to apply the log entries in the correct order
-				// (from oldest to newest)
-				Collections.reverse(logBlobEntries);
-
-				// Apply all the log entries to the local cache
-				for (LogBlobIndexEntry logBlobEntry : logBlobEntries) {
-					// Apply each part of this log entry
-					try (ByteReader reader = blobStore.read(logBlobEntry.logBlobName)) {
-						for (LogBlobPart part = LogBlobPart.readFrom(reader); part != null; part = LogBlobPart.readFrom(reader))
-							part.applyTo(writer);
-					}
+				} else {
+					/*
+					 * We don't have a local cache blob, so we must start from
+					 * the blob store
+					 */
+					updateLocalCacheBlob_StartFromBlobStore(writer, null, latestLogBlobLsn, latestLogBlobRandomId);
 				}
 			}
 		}
+
+		private void updateLocalCacheBlob_StartFromLocalCacheBlob(AbsoluteByteWriter writer, LinkedList<LogBlobIndexEntry> logBlobEntries) throws Exception {
+			// Apply all the log entries to the local cache
+			for (LogBlobIndexEntry logBlobEntry : logBlobEntries) {
+				// Apply each part of this log entry
+				try (ByteReader reader = blobStore.readLogBlob(logBlobEntry.logBlobRandomId)) {
+					for (LogBlobPart part = LogBlobPart.readFrom(reader); part != null; part = LogBlobPart.readFrom(reader))
+						part.applyTo(writer);
+				}
+			}
+
+			//Finally, update the latest local cache log blob key
+			LogBlobIndexEntry latestEntry = logBlobEntries.peekLast();
+			localCache.setLatestLogBlobKey(fileBlobName, new LogBlobKey(latestEntry.logBlobLsn, latestEntry.logBlobRandomId));
+		}
+
+		private void updateLocalCacheBlob_StartFromBlobStore(AbsoluteByteWriter writer, LinkedList<LogBlobIndexEntry> logBlobEntries, long latestLogBlobLsn, String latestLogBlobRandomId) throws Exception {
+			//Read the file blob
+			FileMetaData meta = new FileMetaData();
+			try (ByteReader reader = blobStore.readFileBlob(fileBlobName, meta)) {
+				//Copy to local cache
+				ByteReaderUtils.copy(reader, writer);
+			}
+
+			//Then determine which log records must be applied
+			if (logBlobEntries == null) {
+				//If not specified, then we read here
+				logBlobEntries = index.readLogBlobEntries(fileBlobName, meta.latestLogBlobLsn, meta.latestLogBlobRandomId, latestLogBlobLsn, latestLogBlobRandomId);
+			} else {
+				//If specified, we discard those already applied (i.e., those up to and including meta.latestLogBlobLsn)
+				while (!logBlobEntries.isEmpty() && logBlobEntries.peekFirst().logBlobLsn <= meta.latestLogBlobLsn)
+					logBlobEntries.removeFirst();
+			}
+
+			//Finally, we apply the entries into the local cache
+			updateLocalCacheBlob_StartFromLocalCacheBlob(writer, logBlobEntries);
+		}
+
 	}
 }

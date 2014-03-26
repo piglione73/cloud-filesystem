@@ -1,13 +1,13 @@
 package com.paviasystem.cloudfilesystem;
 
-import java.util.LinkedList;
-
 import com.paviasystem.cloudfilesystem.blocks.Index;
 import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
-import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 
-class Utils {
+public class Utils {
+	public static String padLeft(long number) {
+		return number >= 0 ? String.format("%019d", number) : String.format("%020d", number);
+	}
 
 	/**
 	 * Given a DirectoryFileIndexEntry, finds the associated FileBlobIndexEntry
