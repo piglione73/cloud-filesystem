@@ -115,7 +115,7 @@ public class CloudFileSystem implements FileSystem {
 			// The file exists. Can we open it?
 			if (fileEntry.isFile && allowOpen) {
 				// Get blob entry also
-				FileBlobIndexEntry blobEntry = Utils.getFileBlobIndexEntry(index, fileEntry);
+				FileBlobIndexEntry blobEntry = index.getFileBlobEntry(fileEntry);
 				return new MyFile(blobEntry.fileBlobName, truncate);
 			}
 		} else {

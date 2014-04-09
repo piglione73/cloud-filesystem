@@ -1,16 +1,82 @@
 package com.paviasystem.cloudfilesystem.blocks.drivers;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 
 import com.paviasystem.cloudfilesystem.blocks.Index;
+import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
 
-public class IndexDriver implements Index {
+public class IndexDriver {
 	private Index index;
 
 	public IndexDriver(Index index) {
 		this.index = index;
+	}
+
+	public Iterable<DirectoryFileIndexEntry> listChildrenDirectoryFileEntries(String absolutePath) {
+		TODO;
+	}
+
+	public DirectoryFileIndexEntry readDirectoryFileEntry(String absolutePath) {
+		TODO;
+	}
+
+	public void writeDirectoryFileEntry(DirectoryFileIndexEntry entry) {
+		TODO;
+	}
+
+	public void deleteDirectoryFileEntry(String absolutePath) {
+		TODO;
+	}
+
+	public void updateDirectoryFileEntry(String oldAbsolutePath, String newAbsolutePath) {
+		TODO;
+	}
+
+	public void createFileBlobEntry(FileBlobIndexEntry blobEntry) {
+		TODO;
+	}
+
+	public FileBlobIndexEntry readFileBlobEntry(String fileBlobName) {
+		TODO;
+	}
+
+	/**
+	 * Given a DirectoryFileIndexEntry, finds the associated FileBlobIndexEntry
+	 * possibly resolving soft links.
+	 * 
+	 * @param fileEntry
+	 * @return Returns the FileBlobIndexEntry; never returns null
+	 * @throws Exception
+	 *             Throws an Exception if it cannot find the FileBlobIndexEntry
+	 */
+	public FileBlobIndexEntry getFileBlobEntry(DirectoryFileIndexEntry fileEntry) throws Exception {
+		if (!fileEntry.isFile)
+			throw new Exception("Not a file: " + fileEntry.absolutePath);
+
+		// Recursively follow soft link, if soft link
+		if (fileEntry.isSoftLink) {
+			DirectoryFileIndexEntry linkedFileEntry = readDirectoryFileEntry(fileEntry.targetAbsolutePath);
+			if (linkedFileEntry == null)
+				throw new Exception("Broken soft link: " + fileEntry.absolutePath);
+
+			return getFileBlobEntry(linkedFileEntry);
+		}
+
+		// If regular file, get file blob index entry
+		FileBlobIndexEntry blobEntry = readFileBlobEntry(fileEntry.fileBlobName);
+		if (blobEntry == null)
+			throw new Exception("Missing blob: " + fileEntry.absolutePath + " --> " + fileEntry.fileBlobName);
+
+		return blobEntry;
+	}
+
+
+	public boolean updateFileBlobEntry(String fileBlobName, long latestLogBlobLsn, String latestLogBlobRandomId, long logBlobLsn, String logBlobRandomId, long newLength, Date date) {
+		TODO;
 	}
 
 	public LinkedList<LogBlobIndexEntry> readLogBlobEntries(String fileBlobName, long lsn1, String randomId1, long lsn2, String randomId2) {
@@ -62,4 +128,7 @@ public class IndexDriver implements Index {
 		return chain;
 	}
 
+	public void writeLogBlobEntry(LogBlobIndexEntry lbie) {
+		TODO;
+	}
 }
