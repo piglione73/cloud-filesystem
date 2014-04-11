@@ -46,6 +46,7 @@ public class IndexDriver {
 		ie.key2 = entry.absolutePath;
 		ie.data1 = (entry.isFile ? Flag_IsFile : "") + (entry.isSoftLink ? Flag_IsSoftLink : "");
 		ie.data2 = entry.isSoftLink ? entry.targetAbsolutePath : entry.fileBlobName;
+
 		return ie;
 	}
 
@@ -73,6 +74,33 @@ public class IndexDriver {
 		ie.data3 = Utils.padLeft(entry.length);
 		ie.data4 = Utils.formatTimestamp(entry.lastEditTimestamp);
 		ie.data5 = Utils.formatTimestamp(entry.creationTimestamp);
+
+		return ie;
+	}
+
+	protected static LogBlobIndexEntry convertToLogBlobIndexEntry(IndexEntry ie) throws Exception {
+		if (!ie.key1.equals(Type_LogBlob))
+			throw new Exception("Wrong object type: " + ie.key1);
+
+		LogBlobIndexEntry entry = new LogBlobIndexEntry();
+		entry.fileBlobName = ie.key2;
+		entry.logBlobLsn = Long.parseLong(ie.data1);
+		entry.logBlobRandomId = ie.data2;
+		entry.previousLogBlobRandomId = ie.data3;
+		entry.creationTimestamp = Utils.parseTimestamp(ie.data4);
+
+		return entry;
+	}
+
+	protected static IndexEntry convertToIndexEntry(LogBlobIndexEntry entry) {
+		IndexEntry ie = new IndexEntry();
+		ie.key1 = Type_LogBlob;
+		ie.key2 = entry.fileBlobName;
+		ie.data1 = Utils.padLeft(entry.logBlobLsn);
+		ie.data2 = entry.logBlobRandomId;
+		ie.data3 = entry.previousLogBlobRandomId;
+		ie.data4 = Utils.formatTimestamp(entry.creationTimestamp);
+
 		return ie;
 	}
 
@@ -202,10 +230,11 @@ public class IndexDriver {
 		return index.update(oldIe.key1, oldIe.key2, oldIe.data1, oldIe.data2, newIe.data1, newIe.data2, newIe.data3, newIe.data4);
 	}
 
-	public LinkedList<LogBlobIndexEntry> readLogBlobEntries(String fileBlobName, long lsn1, String randomId1, long lsn2, String randomId2) {
+	public LinkedList<LogBlobIndexEntry> readLogBlobEntries(String fileBlobName, long lsn1, String randomId1, long lsn2, String randomId2) throws Exception {
 		//First, read all log blob index entries >= lsn1 and <= lsn2 and arrange them in a two-level map, for subsequent faster lookups
 		HashMap<Long, HashMap<String, LogBlobIndexEntry>> entries = new HashMap<>();
-		for (LogBlobIndexEntry entry : index.readLogBlobEntries(fileBlobName, lsn1, lsn2)) {
+		for (IndexEntry ie : index.list(Type_LogBlob, Utils.padLeft(lsn1), Utils.padLeft(lsn2))) {
+			LogBlobIndexEntry entry = convertToLogBlobIndexEntry(ie);
 			HashMap<String, LogBlobIndexEntry> map = entries.get(entry.logBlobLsn);
 			if (map == null) {
 				map = new HashMap<>();
@@ -251,7 +280,11 @@ public class IndexDriver {
 		return chain;
 	}
 
-	public void writeLogBlobEntry(LogBlobIndexEntry lbie) {
-		TODO;
+	public void writeLogBlobEntry(LogBlobIndexEntry entry) {
+		if (entry == null)
+			return;
+
+		IndexEntry ie = convertToIndexEntry(entry);
+		index.write(ie);
 	}
 }

@@ -10,6 +10,7 @@ import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.IndexDriver;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.FileBlobIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobIndexEntry;
 
 public class IndexDriverTest extends IndexDriver {
 
@@ -149,5 +150,41 @@ public class IndexDriverTest extends IndexDriver {
 		assertEquals("9223372036854775807", ie.data3);
 		assertEquals("1970-01-01T00:00:00.000", ie.data4);
 		assertEquals("1970-01-01T00:00:01.000", ie.data5);
+	}
+
+	@Test
+	public void test_convertToLogBlobIndexEntry() throws Exception {
+		IndexEntry ie = new IndexEntry();
+		ie.key1 = Type_LogBlob;
+		ie.key2 = "BLOB";
+		ie.data1 = "0000000000000000057";
+		ie.data2 = "XYZ";
+		ie.data3 = "QWE";
+		ie.data4 = "1970-01-01T00:00:09.999";
+
+		LogBlobIndexEntry entry = convertToLogBlobIndexEntry(ie);
+		assertEquals("BLOB", entry.fileBlobName);
+		assertEquals(57, entry.logBlobLsn);
+		assertEquals("XYZ", entry.logBlobRandomId);
+		assertEquals("QWE", entry.previousLogBlobRandomId);
+		assertEquals(new Date(9999), entry.creationTimestamp);
+	}
+
+	@Test
+	public void test_convertLogBlobIndexEntryToIndexEntry() throws Exception {
+		LogBlobIndexEntry entry = new LogBlobIndexEntry();
+		entry.fileBlobName = "BLOB";
+		entry.logBlobLsn = 57;
+		entry.logBlobRandomId = "XYZ";
+		entry.previousLogBlobRandomId = "QWE";
+		entry.creationTimestamp = new Date(9999);
+
+		IndexEntry ie = convertToIndexEntry(entry);
+		assertEquals(Type_LogBlob, ie.key1);
+		assertEquals("BLOB", ie.key2);
+		assertEquals("0000000000000000057", ie.data1);
+		assertEquals("XYZ", ie.data2);
+		assertEquals("QWE", ie.data3);
+		assertEquals("1970-01-01T00:00:09.999", ie.data4);
 	}
 }
