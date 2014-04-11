@@ -5,9 +5,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import com.paviasystem.cloudfilesystem.blocks.Index;
-import com.paviasystem.cloudfilesystem.blocks.data.DirectoryFileIndexEntry;
-import com.paviasystem.cloudfilesystem.blocks.data.FileBlobIndexEntry;
-import com.paviasystem.cloudfilesystem.blocks.data.LogBlobIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.drivers.data.DirectoryFileIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.drivers.data.FileBlobIndexEntry;
+import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobIndexEntry;
 
 public class IndexDriver {
 	private Index index;

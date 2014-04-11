@@ -9,7 +9,7 @@ import com.paviasystem.cloudfilesystem.blocks.ByteReader;
 import com.paviasystem.cloudfilesystem.blocks.ByteReaderUtils;
 import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.LocalCache;
-import com.paviasystem.cloudfilesystem.blocks.data.LogBlobKey;
+import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobKey;
 
 public class LocalCacheDriver {
 	final static String BLOB = "blob";

@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.blocks.data;
+package com.paviasystem.cloudfilesystem.blocks.drivers.data;
 
 public class DirectoryFileIndexEntry {
 	public String absolutePath;
