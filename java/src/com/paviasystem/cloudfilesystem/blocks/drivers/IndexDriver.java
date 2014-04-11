@@ -2,38 +2,135 @@ package com.paviasystem.cloudfilesystem.blocks.drivers;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 
+import com.paviasystem.cloudfilesystem.Utils;
 import com.paviasystem.cloudfilesystem.blocks.Index;
+import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobIndexEntry;
 
 public class IndexDriver {
+	protected static final String Type_DirectoryOrFile = "DF";
+	protected static final String Type_FileBlob = "FB";
+	protected static final String Type_LogBlob = "LB";
+
+	protected static final String Flag_IsFile = "F";
+	protected static final String Flag_IsSoftLink = "L";
+
 	private Index index;
 
 	public IndexDriver(Index index) {
 		this.index = index;
 	}
 
-	public Iterable<DirectoryFileIndexEntry> listChildrenDirectoryFileEntries(String absolutePath) {
-		TODO;
+	protected static DirectoryFileIndexEntry convertToDirectoryFileIndexEntry(IndexEntry ie) throws Exception {
+		if (!ie.key1.equals(Type_DirectoryOrFile))
+			throw new Exception("Wrong object type: " + ie.key1);
+
+		DirectoryFileIndexEntry entry = new DirectoryFileIndexEntry();
+		entry.absolutePath = ie.key2;
+		entry.isFile = ie.data1.contains(Flag_IsFile);
+		entry.isSoftLink = ie.data1.contains(Flag_IsSoftLink);
+		entry.fileBlobName = entry.isFile && !entry.isSoftLink ? ie.data2 : "";
+		entry.targetAbsolutePath = entry.isSoftLink ? ie.data2 : "";
+
+		return entry;
 	}
 
-	public DirectoryFileIndexEntry readDirectoryFileEntry(String absolutePath) {
-		TODO;
+	protected static IndexEntry convertToIndexEntry(DirectoryFileIndexEntry entry) {
+		IndexEntry ie = new IndexEntry();
+		ie.key1 = Type_DirectoryOrFile;
+		ie.key2 = entry.absolutePath;
+		ie.data1 = (entry.isFile ? Flag_IsFile : "") + (entry.isSoftLink ? Flag_IsSoftLink : "");
+		ie.data2 = entry.isSoftLink ? entry.targetAbsolutePath : entry.fileBlobName;
+		return ie;
+	}
+
+	protected static FileBlobIndexEntry convertToFileBlobIndexEntry(IndexEntry ie) throws Exception {
+		if (!ie.key1.equals(Type_FileBlob))
+			throw new Exception("Wrong object type: " + ie.key1);
+
+		FileBlobIndexEntry entry = new FileBlobIndexEntry();
+		entry.fileBlobName = ie.key2;
+		entry.latestLogBlobLsn = Long.parseLong(ie.data1);
+		entry.latestLogBlobRandomId = ie.data2;
+		entry.length = Long.parseLong(ie.data3);
+		entry.creationTimestamp = new Date();
+		entry.lastEditTimestamp = new Date();
+
+		return entry;
+	}
+
+	protected static IndexEntry convertToIndexEntry(FileBlobIndexEntry entry) {
+		IndexEntry ie = new IndexEntry();
+		ie.key1 = Type_FileBlob;
+		ie.key2 = entry.fileBlobName;
+		ie.data1 = Utils.padLeft(entry.latestLogBlobLsn);
+		ie.data2 = entry.latestLogBlobRandomId;
+		ie.data3 = Utils.padLeft(entry.length);
+		ie.data4 = entry.creationTimestamp.toString();
+		ie.data5 = entry.lastEditTimestamp.toString();
+		return ie;
+	}
+
+	public Iterable<DirectoryFileIndexEntry> listChildrenDirectoryFileEntries(String absolutePath) {
+		String key2Prefix = absolutePath + "/";
+		Iterable<IndexEntry> ies = index.list(Type_DirectoryOrFile, key2Prefix);
+		final Iterator<IndexEntry> it = ies.iterator();
+
+		return new Iterable<DirectoryFileIndexEntry>() {
+			@Override
+			public Iterator<DirectoryFileIndexEntry> iterator() {
+				return new Iterator<DirectoryFileIndexEntry>() {
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public DirectoryFileIndexEntry next() {
+						try {
+							return convertToDirectoryFileIndexEntry(it.next());
+						} catch (Exception e) {
+							e.printStackTrace();
+							return null;
+						}
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+		};
+	}
+
+	public DirectoryFileIndexEntry readDirectoryFileEntry(String absolutePath) throws Exception {
+		IndexEntry ie = index.read(Type_DirectoryOrFile, absolutePath);
+		if (ie == null)
+			return null;
+
+		return convertToDirectoryFileIndexEntry(ie);
 	}
 
 	public void writeDirectoryFileEntry(DirectoryFileIndexEntry entry) {
-		TODO;
+		if (entry == null)
+			return;
+
+		IndexEntry ie = convertToIndexEntry(entry);
+		index.write(ie);
 	}
 
 	public void deleteDirectoryFileEntry(String absolutePath) {
-		TODO;
+		index.delete(Type_DirectoryOrFile, absolutePath);
 	}
 
 	public void updateDirectoryFileEntry(String oldAbsolutePath, String newAbsolutePath) {
-		TODO;
+		index.updateKey(Type_DirectoryOrFile, oldAbsolutePath, Type_DirectoryOrFile, newAbsolutePath);
 	}
 
 	public void createFileBlobEntry(FileBlobIndexEntry blobEntry) {
@@ -73,7 +170,6 @@ public class IndexDriver {
 
 		return blobEntry;
 	}
-
 
 	public boolean updateFileBlobEntry(String fileBlobName, long latestLogBlobLsn, String latestLogBlobRandomId, long logBlobLsn, String logBlobRandomId, long newLength, Date date) {
 		TODO;
