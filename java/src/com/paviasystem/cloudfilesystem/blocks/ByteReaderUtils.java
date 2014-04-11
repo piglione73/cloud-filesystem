@@ -1,5 +1,7 @@
 package com.paviasystem.cloudfilesystem.blocks;
 
+import java.io.ByteArrayOutputStream;
+
 public class ByteReaderUtils {
 	public static boolean readExact(ByteReader reader, byte[] buffer, int offset, int exactNumBytesToRead) {
 		int bytesToRead = exactNumBytesToRead;
@@ -27,6 +29,18 @@ public class ByteReaderUtils {
 		for (int bytesRead = reader.read(buf, 0, buf.length); bytesRead >= 0; bytesRead = reader.read(buf, 0, buf.length)) {
 			writer.write(buf, 0, bytesRead, destOffset);
 			destOffset += bytesRead;
+		}
+	}
+
+	public static byte[] readAll(ByteReader reader) throws Exception {
+		byte[] buf = new byte[65536];
+
+		try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream()) {
+			for (int bytesRead = reader.read(buf, 0, buf.length); bytesRead >= 0; bytesRead = reader.read(buf, 0, buf.length)) {
+				byteStream.write(buf, 0, bytesRead);
+			}
+
+			return byteStream.toByteArray();
 		}
 	}
 }
