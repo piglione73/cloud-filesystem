@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.test;
+package com.paviasystem.cloudfilesystem.test.index;
 
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryIndex;
 

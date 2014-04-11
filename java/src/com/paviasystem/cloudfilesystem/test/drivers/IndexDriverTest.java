@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.test;
+package com.paviasystem.cloudfilesystem.test.drivers;
 
 import static org.junit.Assert.assertEquals;
 
