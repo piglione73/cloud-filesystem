@@ -18,13 +18,13 @@ import com.paviasystem.cloudfilesystem.blocks.LocalCache;
 import com.paviasystem.cloudfilesystem.blocks.LockManager;
 import com.paviasystem.cloudfilesystem.blocks.drivers.BlobStoreDriver;
 import com.paviasystem.cloudfilesystem.blocks.drivers.BlobStoreDriver.FileMetaData;
+import com.paviasystem.cloudfilesystem.blocks.drivers.IndexDriver;
+import com.paviasystem.cloudfilesystem.blocks.drivers.LocalCacheDriver;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobKey;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobPart;
-import com.paviasystem.cloudfilesystem.blocks.drivers.IndexDriver;
-import com.paviasystem.cloudfilesystem.blocks.drivers.LocalCacheDriver;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 
 public class CloudFileSystem implements FileSystem {
@@ -59,7 +59,7 @@ public class CloudFileSystem implements FileSystem {
 	}
 
 	@Override
-	public FileSystemEntry getEntry(String absolutePath) {
+	public FileSystemEntry getEntry(String absolutePath) throws Exception {
 		// File system entries are in a strongly-consistent file system index
 		absolutePath = Path.normalize(absolutePath);
 		DirectoryFileIndexEntry entry = index.readDirectoryFileEntry(absolutePath);
@@ -136,7 +136,7 @@ public class CloudFileSystem implements FileSystem {
 				blobEntry.creationTimestamp = new Date();
 				blobEntry.lastEditTimestamp = blobEntry.creationTimestamp;
 
-				index.createFileBlobEntry(blobEntry);
+				index.writeFileBlobEntry(blobEntry);
 				index.writeDirectoryFileEntry(fileEntry);
 
 				return new MyFile(blobEntry.fileBlobName, truncate);

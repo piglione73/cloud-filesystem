@@ -127,8 +127,8 @@ public class IndexDriverTest extends IndexDriver {
 		assertEquals(57, entry.latestLogBlobLsn);
 		assertEquals("XYZ", entry.latestLogBlobRandomId);
 		assertEquals(Long.MAX_VALUE, entry.length);
-		assertEquals(new Date(0), entry.creationTimestamp);
-		assertEquals(new Date(1000), entry.lastEditTimestamp);
+		assertEquals(new Date(0), entry.lastEditTimestamp);
+		assertEquals(new Date(1000), entry.creationTimestamp);
 	}
 
 	@Test
@@ -138,8 +138,8 @@ public class IndexDriverTest extends IndexDriver {
 		entry.latestLogBlobLsn = 57;
 		entry.latestLogBlobRandomId = "XYZ";
 		entry.length = Long.MAX_VALUE;
-		entry.creationTimestamp = new Date(0);
-		entry.lastEditTimestamp = new Date(1000);
+		entry.lastEditTimestamp = new Date(0);
+		entry.creationTimestamp = new Date(1000);
 
 		IndexEntry ie = convertToIndexEntry(entry);
 		assertEquals(Type_FileBlob, ie.key1);

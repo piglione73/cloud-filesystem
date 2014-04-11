@@ -58,8 +58,8 @@ public class IndexDriver {
 		entry.latestLogBlobLsn = Long.parseLong(ie.data1);
 		entry.latestLogBlobRandomId = ie.data2;
 		entry.length = Long.parseLong(ie.data3);
-		entry.creationTimestamp = new Date();
-		entry.lastEditTimestamp = new Date();
+		entry.lastEditTimestamp = Utils.parseTimestamp(ie.data4);
+		entry.creationTimestamp = Utils.parseTimestamp(ie.data5);
 
 		return entry;
 	}
@@ -71,14 +71,16 @@ public class IndexDriver {
 		ie.data1 = Utils.padLeft(entry.latestLogBlobLsn);
 		ie.data2 = entry.latestLogBlobRandomId;
 		ie.data3 = Utils.padLeft(entry.length);
-		ie.data4 = entry.creationTimestamp.toString();
-		ie.data5 = entry.lastEditTimestamp.toString();
+		ie.data4 = Utils.formatTimestamp(entry.lastEditTimestamp);
+		ie.data5 = Utils.formatTimestamp(entry.creationTimestamp);
 		return ie;
 	}
 
 	public Iterable<DirectoryFileIndexEntry> listChildrenDirectoryFileEntries(String absolutePath) {
-		String key2Prefix = absolutePath + "/";
-		Iterable<IndexEntry> ies = index.list(Type_DirectoryOrFile, key2Prefix);
+		char suffix = '/';
+		String fromKey2 = absolutePath + suffix++;
+		String toKey2 = absolutePath + suffix;
+		Iterable<IndexEntry> ies = index.list(Type_DirectoryOrFile, fromKey2, toKey2);
 		final Iterator<IndexEntry> it = ies.iterator();
 
 		return new Iterable<DirectoryFileIndexEntry>() {
@@ -130,15 +132,23 @@ public class IndexDriver {
 	}
 
 	public void updateDirectoryFileEntry(String oldAbsolutePath, String newAbsolutePath) {
-		index.updateKey(Type_DirectoryOrFile, oldAbsolutePath, Type_DirectoryOrFile, newAbsolutePath);
+		index.update(Type_DirectoryOrFile, oldAbsolutePath, Type_DirectoryOrFile, newAbsolutePath);
 	}
 
-	public void createFileBlobEntry(FileBlobIndexEntry blobEntry) {
-		TODO;
+	public FileBlobIndexEntry readFileBlobEntry(String fileBlobName) throws Exception {
+		IndexEntry ie = index.read(Type_FileBlob, fileBlobName);
+		if (ie == null)
+			return null;
+
+		return convertToFileBlobIndexEntry(ie);
 	}
 
-	public FileBlobIndexEntry readFileBlobEntry(String fileBlobName) {
-		TODO;
+	public void writeFileBlobEntry(FileBlobIndexEntry entry) {
+		if (entry == null)
+			return;
+
+		IndexEntry ie = convertToIndexEntry(entry);
+		index.write(ie);
 	}
 
 	/**
@@ -171,8 +181,25 @@ public class IndexDriver {
 		return blobEntry;
 	}
 
-	public boolean updateFileBlobEntry(String fileBlobName, long latestLogBlobLsn, String latestLogBlobRandomId, long logBlobLsn, String logBlobRandomId, long newLength, Date date) {
-		TODO;
+	public boolean updateFileBlobEntry(String fileBlobName, long latestLogBlobLsn, String latestLogBlobRandomId, long newLogBlobLsn, String newLogBlobRandomId, long newLength, Date newLastEditTimestamp) {
+		//Consistent update from this...
+		FileBlobIndexEntry oldEntry = new FileBlobIndexEntry();
+		oldEntry.fileBlobName = fileBlobName;
+		oldEntry.latestLogBlobLsn = latestLogBlobLsn;
+		oldEntry.latestLogBlobRandomId = latestLogBlobRandomId;
+
+		//... to this...
+		FileBlobIndexEntry newEntry = new FileBlobIndexEntry();
+		newEntry.fileBlobName = fileBlobName;
+		newEntry.latestLogBlobLsn = newLogBlobLsn;
+		newEntry.latestLogBlobRandomId = newLogBlobRandomId;
+		newEntry.length = newLength;
+		newEntry.lastEditTimestamp = newLastEditTimestamp;
+
+		IndexEntry oldIe = convertToIndexEntry(oldEntry);
+		IndexEntry newIe = convertToIndexEntry(newEntry);
+
+		return index.update(oldIe.key1, oldIe.key2, oldIe.data1, oldIe.data2, newIe.data1, newIe.data2, newIe.data3, newIe.data4);
 	}
 
 	public LinkedList<LogBlobIndexEntry> readLogBlobEntries(String fileBlobName, long lsn1, String randomId1, long lsn2, String randomId2) {
