@@ -26,6 +26,9 @@ import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobIndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobKey;
 import com.paviasystem.cloudfilesystem.blocks.drivers.data.LogBlobPart;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
+import com.paviasystem.filesystem.File;
+import com.paviasystem.filesystem.FileSystem;
+import com.paviasystem.filesystem.Path;
 
 public class CloudFileSystem implements FileSystem {
 	final BlobStoreDriver blobStore;

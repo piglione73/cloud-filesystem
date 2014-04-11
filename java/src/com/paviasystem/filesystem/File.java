@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.filesystem;
 
 public interface File extends AutoCloseable {
 

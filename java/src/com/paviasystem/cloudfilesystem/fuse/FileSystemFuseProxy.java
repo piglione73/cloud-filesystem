@@ -14,10 +14,10 @@ import net.fusejna.types.TypeMode.NodeType;
 import net.fusejna.util.FuseFilesystemAdapterFull;
 
 import com.paviasystem.cloudfilesystem.CloudFileSystem;
-import com.paviasystem.cloudfilesystem.File;
-import com.paviasystem.cloudfilesystem.FileSystem;
 import com.paviasystem.cloudfilesystem.data.FileSystemEntry;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryIndex;
+import com.paviasystem.filesystem.File;
+import com.paviasystem.filesystem.FileSystem;
 
 public class FileSystemFuseProxy extends FuseFilesystemAdapterFull {
 	final static Object handlesSync = new Object();

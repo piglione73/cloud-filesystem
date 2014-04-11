@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import com.paviasystem.cloudfilesystem.Path;
+import com.paviasystem.filesystem.Path;
 
 public class PathTest {
 	@Test

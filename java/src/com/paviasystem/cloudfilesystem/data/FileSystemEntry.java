@@ -1,7 +1,7 @@
 package com.paviasystem.cloudfilesystem.data;
 
-import com.paviasystem.cloudfilesystem.FileSystem;
-import com.paviasystem.cloudfilesystem.Path;
+import com.paviasystem.filesystem.FileSystem;
+import com.paviasystem.filesystem.Path;
 
 /**
  * An entry in a filesystem listing. Can be a directory entry or a file entry.
