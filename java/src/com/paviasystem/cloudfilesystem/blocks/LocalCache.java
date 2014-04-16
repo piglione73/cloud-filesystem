@@ -1,5 +1,7 @@
 package com.paviasystem.cloudfilesystem.blocks;
 
+import com.paviasystem.cloudfilesystem.blocks.data.LocalCacheEntry;
+
 public interface LocalCache {
 	ByteWriter openSequentialWriter(String category, String name);
 
@@ -10,4 +12,6 @@ public interface LocalCache {
 	AbsoluteByteWriter openAbsoluteWriter(String category, String name);
 
 	void delete(String category, String name);
+
+	Iterable<LocalCacheEntry> list();
 }
