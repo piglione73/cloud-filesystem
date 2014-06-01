@@ -36,7 +36,7 @@ public class ByteReaderUtils {
 		byte[] buf = new byte[65536];
 
 		try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream()) {
-			for (int bytesRead = reader.read(buf, 0, buf.length); bytesRead >= 0; bytesRead = reader.read(buf, 0, buf.length)) {
+			for (int bytesRead = reader.read(buf, 0, buf.length); bytesRead > 0; bytesRead = reader.read(buf, 0, buf.length)) {
 				byteStream.write(buf, 0, bytesRead);
 			}
 

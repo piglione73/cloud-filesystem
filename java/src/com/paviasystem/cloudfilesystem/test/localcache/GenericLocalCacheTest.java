@@ -1,11 +1,10 @@
 package com.paviasystem.cloudfilesystem.test.localcache;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -13,8 +12,12 @@ import java.util.Comparator;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteReader;
+import com.paviasystem.cloudfilesystem.blocks.AbsoluteByteWriter;
+import com.paviasystem.cloudfilesystem.blocks.ByteReader;
+import com.paviasystem.cloudfilesystem.blocks.ByteReaderUtils;
+import com.paviasystem.cloudfilesystem.blocks.ByteWriter;
 import com.paviasystem.cloudfilesystem.blocks.LocalCache;
-import com.paviasystem.cloudfilesystem.blocks.data.IndexEntry;
 import com.paviasystem.cloudfilesystem.blocks.data.LocalCacheEntry;
 
 public class GenericLocalCacheTest {
@@ -45,435 +48,65 @@ public class GenericLocalCacheTest {
 		if (localCache == null)
 			return;
 
-		//Delete all
+		// Delete all
 		ArrayList<LocalCacheEntry> list = toSortedList(localCache.list());
 		for (LocalCacheEntry x : list)
 			localCache.delete(x.category, x.name);
 	}
 
 	@Test
-	public void genericTest_ReadWriteListDelete() {
+	public void genericTest_ReadWriteListDelete() throws Exception {
 		if (localCache == null)
 			return;
 
-		assertEquals(0, toSortedList(localCache.list(null, null, null)).size());
-		assertNull(localCache.read("A", "B"));
+		assertEquals(0, toSortedList(localCache.list()).size());
+		assertNull(localCache.openAbsoluteReader("A", "B"));
+		assertNull(localCache.openSequentialReader("A", "B"));
 
-		IndexEntry ie = new IndexEntry();
-		ie.key1 = "A";
-		ie.key2 = "B";
-		ie.data1 = "C";
-		ie.data2 = "D";
-		ie.data3 = "E";
-		ie.data4 = "F";
-		ie.data5 = "G";
+		try (AbsoluteByteWriter w = localCache.openAbsoluteWriter("A", "B")) {
+			byte[] buffer = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".getBytes(StandardCharsets.US_ASCII);
+			w.write(buffer, 3, 2, 0);
+			w.write(buffer, 0, 5, 2);
+			w.write(buffer, 9, 5, 4);
+			w.setLength(7);
 
-		localCache.write(ie);
+			// Final result: DEABJKL
+		}
 
-		ie = localCache.read("A", "B");
-		assertNotNull(ie);
-		assertEquals("A", ie.key1);
-		assertEquals("B", ie.key2);
-		assertEquals("C", ie.data1);
-		assertEquals("D", ie.data2);
-		assertEquals("E", ie.data3);
-		assertEquals("F", ie.data4);
-		assertEquals("G", ie.data5);
-
-		ArrayList<IndexEntry> list = toSortedList(localCache.list(null, null, null));
+		ArrayList<LocalCacheEntry> list = toSortedList(localCache.list());
 		assertEquals(1, list.size());
+		assertEquals("A", list.get(0).category);
+		assertEquals("B", list.get(0).name);
 
-		ie = list.get(0);
-		assertEquals("A", ie.key1);
-		assertEquals("B", ie.key2);
-		assertEquals("C", ie.data1);
-		assertEquals("D", ie.data2);
-		assertEquals("E", ie.data3);
-		assertEquals("F", ie.data4);
-		assertEquals("G", ie.data5);
-
-		for (char k1 = 'A'; k1 <= 'Z'; k1++) {
-			for (char k2 = 'Z'; k2 >= 'A'; k2--) {
-				for (char d = 'A'; d <= 'Z'; d++) {
-					ie = new IndexEntry();
-					ie.key1 = "" + k1;
-					ie.key2 = "" + k2;
-					ie.data1 = "" + d;
-					ie.data2 = "" + d;
-					ie.data3 = "" + d;
-					ie.data4 = "" + d;
-					ie.data5 = "" + d;
-
-					localCache.write(ie);
-				}
-			}
+		try (ByteReader r = localCache.openSequentialReader("A", "B")) {
+			byte[] buffer = ByteReaderUtils.readAll(r);
+			assertArrayEquals("DEABJKL".getBytes(StandardCharsets.US_ASCII), buffer);
 		}
 
-		list = toSortedList(localCache.list(null, null, null));
-		assertEquals(26 * 26, list.size());
+		try (ByteWriter w = localCache.openSequentialWriter("A", "B")) {
+			byte[] buffer = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".getBytes(StandardCharsets.US_ASCII);
+			w.write(buffer, 10, 3);
 
-		ie = list.get(0);
-		assertEquals("A", ie.key1);
-		assertEquals("A", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(1);
-		assertEquals("A", ie.key1);
-		assertEquals("B", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(2);
-		assertEquals("A", ie.key1);
-		assertEquals("C", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		list = toSortedList(localCache.list("X", null, null));
-		assertEquals(26, list.size());
-
-		ie = list.get(0);
-		assertEquals("X", ie.key1);
-		assertEquals("A", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(1);
-		assertEquals("X", ie.key1);
-		assertEquals("B", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(2);
-		assertEquals("X", ie.key1);
-		assertEquals("C", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		list = toSortedList(localCache.list("X", "C", null));
-		assertEquals(24, list.size());
-
-		ie = list.get(0);
-		assertEquals("X", ie.key1);
-		assertEquals("C", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(1);
-		assertEquals("X", ie.key1);
-		assertEquals("D", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(2);
-		assertEquals("X", ie.key1);
-		assertEquals("E", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		list = toSortedList(localCache.list("X", null, "X"));
-		assertEquals(24, list.size());
-
-		ie = list.get(0);
-		assertEquals("X", ie.key1);
-		assertEquals("A", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(1);
-		assertEquals("X", ie.key1);
-		assertEquals("B", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(2);
-		assertEquals("X", ie.key1);
-		assertEquals("C", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		list = toSortedList(localCache.list("X", "C", "E"));
-		assertEquals(3, list.size());
-
-		ie = list.get(0);
-		assertEquals("X", ie.key1);
-		assertEquals("C", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(1);
-		assertEquals("X", ie.key1);
-		assertEquals("D", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(2);
-		assertEquals("X", ie.key1);
-		assertEquals("E", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		list = toSortedList(localCache.list("Q", null, null));
-		assertEquals(26, list.size());
-		for (IndexEntry x : list)
-			localCache.delete(x.key1, x.key2);
-
-		list = toSortedList(localCache.list(null, null, null));
-		assertEquals(25 * 26, list.size());
-
-		assertNull(localCache.read("Q", "Q"));
-		assertNotNull(localCache.read("X", "Q"));
-	}
-
-	@Test
-	public void genericTest_Update() {
-		if (localCache == null)
-			return;
-
-		assertEquals(0, toSortedList(localCache.list(null, null, null)).size());
-
-		for (char k1 = 'A'; k1 <= 'C'; k1++) {
-			for (char k2 = 'C'; k2 >= 'A'; k2--) {
-				for (char d = 'A'; d <= 'Z'; d++) {
-					IndexEntry ie = new IndexEntry();
-					ie.key1 = "" + k1;
-					ie.key2 = "" + k2;
-					ie.data1 = "" + d;
-					ie.data2 = "" + d;
-					ie.data3 = "" + d;
-					ie.data4 = "" + d;
-					ie.data5 = "" + d;
-
-					localCache.write(ie);
-				}
-			}
+			// Final result: KLMBJKL
 		}
 
-		ArrayList<IndexEntry> list = toSortedList(localCache.list(null, null, null));
-		assertEquals(3 * 3, list.size());
+		try (ByteReader r = localCache.openSequentialReader("A", "B")) {
+			byte[] buffer = ByteReaderUtils.readAll(r);
+			assertArrayEquals("KLMBJKL".getBytes(StandardCharsets.US_ASCII), buffer);
+		}
 
-		for (IndexEntry x : list)
-			assertTrue(localCache.update(x.key1, x.key2, x.key1 + "X", x.key2 + "Y"));
+		try (AbsoluteByteReader r = localCache.openAbsoluteReader("A", "B")) {
+			byte[] buffer = new byte[5];
+			r.read(buffer, 0, 1, 0);
+			r.read(buffer, 1, 1, 1);
+			r.read(buffer, 2, 1, 2);
+			r.read(buffer, 3, 2, 3);
+			assertArrayEquals("KLMBJ".getBytes(StandardCharsets.US_ASCII), buffer);
+		}
 
-		for (IndexEntry x : list)
-			assertFalse(localCache.update(x.key1, x.key2, x.key1 + "X", x.key2 + "Y"));
+		localCache.delete("A", "B");
 
-		list = toSortedList(localCache.list(null, null, null));
-		assertEquals(3 * 3, list.size());
-
-		IndexEntry ie = list.get(0);
-		assertEquals("AX", ie.key1);
-		assertEquals("AY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(1);
-		assertEquals("AX", ie.key1);
-		assertEquals("BY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(2);
-		assertEquals("AX", ie.key1);
-		assertEquals("CY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(3);
-		assertEquals("BX", ie.key1);
-		assertEquals("AY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(4);
-		assertEquals("BX", ie.key1);
-		assertEquals("BY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(5);
-		assertEquals("BX", ie.key1);
-		assertEquals("CY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(6);
-		assertEquals("CX", ie.key1);
-		assertEquals("AY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(7);
-		assertEquals("CX", ie.key1);
-		assertEquals("BY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(8);
-		assertEquals("CX", ie.key1);
-		assertEquals("CY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		assertFalse(localCache.update("CX", "BY", "A", "A", "A", "B", "C", "D"));
-		assertFalse(localCache.update("CX", "BY", "Z", "A", "AA", "BB", "CC", "DD"));
-		assertTrue(localCache.update("CX", "BY", "Z", "Z", "AAA", "BBB", "CCC", "DDD"));
-
-		list = toSortedList(localCache.list(null, null, null));
-		assertEquals(3 * 3, list.size());
-
-		ie = list.get(0);
-		assertEquals("AX", ie.key1);
-		assertEquals("AY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(1);
-		assertEquals("AX", ie.key1);
-		assertEquals("BY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(2);
-		assertEquals("AX", ie.key1);
-		assertEquals("CY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(3);
-		assertEquals("BX", ie.key1);
-		assertEquals("AY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(4);
-		assertEquals("BX", ie.key1);
-		assertEquals("BY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(5);
-		assertEquals("BX", ie.key1);
-		assertEquals("CY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(6);
-		assertEquals("CX", ie.key1);
-		assertEquals("AY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(7);
-		assertEquals("CX", ie.key1);
-		assertEquals("BY", ie.key2);
-		assertEquals("AAA", ie.data1);
-		assertEquals("BBB", ie.data2);
-		assertEquals("CCC", ie.data3);
-		assertEquals("DDD", ie.data4);
-		assertEquals("Z", ie.data5);
-
-		ie = list.get(8);
-		assertEquals("CX", ie.key1);
-		assertEquals("CY", ie.key2);
-		assertEquals("Z", ie.data1);
-		assertEquals("Z", ie.data2);
-		assertEquals("Z", ie.data3);
-		assertEquals("Z", ie.data4);
-		assertEquals("Z", ie.data5);
+		list = toSortedList(localCache.list());
+		assertEquals(0, list.size());
 	}
 }
