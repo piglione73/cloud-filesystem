@@ -3,6 +3,7 @@ package com.paviasystem.cloudfilesystem;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -27,4 +28,13 @@ public class Utils {
 	public static Date parseTimestamp(String timestamp) throws ParseException {
 		return timestampFormat.parse(timestamp);
 	}
+
+	public static <T> ArrayList<T> toList(Iterable<T> list) {
+		ArrayList<T> ret = new ArrayList<>();
+		for (T x : list)
+			ret.add(x);
+
+		return ret;
+	}
+
 }

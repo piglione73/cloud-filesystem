@@ -1,5 +1,7 @@
 package com.paviasystem.cloudfilesystem.data;
 
+import java.util.Date;
+
 import com.paviasystem.filesystem.FileSystem;
 import com.paviasystem.filesystem.Path;
 
@@ -15,12 +17,17 @@ public class FileSystemEntry {
 	public final boolean isFile;
 	public final boolean isSoftLink;
 	public final String targetAbsolutePath;
+	public final Date creationTimestamp, lastEditTimestamp;
+	public final long length;
 
-	public FileSystemEntry(FileSystem fileSystem, String absolutePath, boolean isFile, boolean isSoftLink, String targetAbsolutePath) {
+	public FileSystemEntry(FileSystem fileSystem, String absolutePath, boolean isFile, boolean isSoftLink, String targetAbsolutePath, Date creationTimestamp, Date lastEditTimestamp, long length) {
 		this.fileSystem = fileSystem;
 		this.absolutePath = Path.normalize(absolutePath);
 		this.isFile = isFile;
 		this.isSoftLink = isSoftLink;
 		this.targetAbsolutePath = Path.normalize(targetAbsolutePath);
+		this.creationTimestamp = creationTimestamp;
+		this.lastEditTimestamp = lastEditTimestamp;
+		this.length = length;
 	}
 }

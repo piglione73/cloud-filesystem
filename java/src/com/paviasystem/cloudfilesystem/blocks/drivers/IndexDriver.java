@@ -105,9 +105,15 @@ public class IndexDriver {
 	}
 
 	public Iterable<DirectoryFileIndexEntry> listChildrenDirectoryFileEntries(String absolutePath) {
-		char suffix = '/';
-		String fromKey2 = absolutePath + suffix++;
-		String toKey2 = absolutePath + suffix;
+		String fromKey2 = null;
+		String toKey2 = null;
+
+		if (!absolutePath.isEmpty()) {
+			char suffix = '/';
+			fromKey2 = absolutePath + suffix++;
+			toKey2 = absolutePath + suffix;
+		}
+
 		Iterable<IndexEntry> ies = index.list(Type_DirectoryOrFile, fromKey2, toKey2);
 		final Iterator<IndexEntry> it = ies.iterator();
 
@@ -210,13 +216,13 @@ public class IndexDriver {
 	}
 
 	public boolean updateFileBlobEntry(String fileBlobName, long latestLogBlobLsn, String latestLogBlobRandomId, long newLogBlobLsn, String newLogBlobRandomId, long newLength, Date newLastEditTimestamp) {
-		//Consistent update from this...
+		// Consistent update from this...
 		FileBlobIndexEntry oldEntry = new FileBlobIndexEntry();
 		oldEntry.fileBlobName = fileBlobName;
 		oldEntry.latestLogBlobLsn = latestLogBlobLsn;
 		oldEntry.latestLogBlobRandomId = latestLogBlobRandomId;
 
-		//... to this...
+		// ... to this...
 		FileBlobIndexEntry newEntry = new FileBlobIndexEntry();
 		newEntry.fileBlobName = fileBlobName;
 		newEntry.latestLogBlobLsn = newLogBlobLsn;
@@ -231,7 +237,8 @@ public class IndexDriver {
 	}
 
 	public LinkedList<LogBlobIndexEntry> readLogBlobEntries(String fileBlobName, long lsn1, String randomId1, long lsn2, String randomId2) throws Exception {
-		//First, read all log blob index entries >= lsn1 and <= lsn2 and arrange them in a two-level map, for subsequent faster lookups
+		// First, read all log blob index entries >= lsn1 and <= lsn2 and
+		// arrange them in a two-level map, for subsequent faster lookups
 		HashMap<Long, HashMap<String, LogBlobIndexEntry>> entries = new HashMap<>();
 		for (IndexEntry ie : index.list(Type_LogBlob, Utils.padLeft(lsn1), Utils.padLeft(lsn2))) {
 			LogBlobIndexEntry entry = convertToLogBlobIndexEntry(ie);
@@ -252,24 +259,24 @@ public class IndexDriver {
 		long lsn = lsn2;
 		String id = randomId2;
 		while (lsn >= lsn1) {
-			//Find lsn/id
+			// Find lsn/id
 			HashMap<String, LogBlobIndexEntry> randomIds = entries.get(lsn);
 			if (randomIds != null) {
-				//LSN found
+				// LSN found
 				LogBlobIndexEntry entry = randomIds.get(id);
 				if (entry != null) {
-					//Entry found: add to chain...
+					// Entry found: add to chain...
 					chain.addFirst(entry);
 
-					//...and prepare to move to previous entry
+					// ...and prepare to move to previous entry
 					lsn--;
 					id = entry.previousLogBlobRandomId;
 				} else {
-					//Entry not found: end
+					// Entry not found: end
 					break;
 				}
 			} else {
-				//LSN not found: end
+				// LSN not found: end
 				break;
 			}
 		}

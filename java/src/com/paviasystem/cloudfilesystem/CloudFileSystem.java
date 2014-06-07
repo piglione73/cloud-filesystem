@@ -52,13 +52,14 @@ public class CloudFileSystem implements FileSystem {
 		Iterable<DirectoryFileIndexEntry> entries = index.listChildrenDirectoryFileEntries(absolutePath);
 		ArrayList<FileSystemEntry> ret = new ArrayList<FileSystemEntry>();
 		for (DirectoryFileIndexEntry entry : entries)
-			ret.add(toFileSystemEntry(entry));
+			ret.add(toFileSystemEntry(entry, null));
 
 		return ret;
 	}
 
-	private FileSystemEntry toFileSystemEntry(DirectoryFileIndexEntry entry) {
-		return new FileSystemEntry(this, entry.absolutePath, entry.isFile, entry.isSoftLink, entry.targetAbsolutePath);
+	private FileSystemEntry toFileSystemEntry(DirectoryFileIndexEntry entry, FileBlobIndexEntry fileBlobEntry) {
+		return new FileSystemEntry(this, entry.absolutePath, entry.isFile, entry.isSoftLink, entry.targetAbsolutePath, fileBlobEntry != null ? fileBlobEntry.creationTimestamp : new Date(), fileBlobEntry != null ? fileBlobEntry.lastEditTimestamp : new Date(),
+				fileBlobEntry != null ? fileBlobEntry.length : 0);
 	}
 
 	@Override
@@ -66,10 +67,16 @@ public class CloudFileSystem implements FileSystem {
 		// File system entries are in a strongly-consistent file system index
 		absolutePath = Path.normalize(absolutePath);
 		DirectoryFileIndexEntry entry = index.readDirectoryFileEntry(absolutePath);
-		if (entry != null)
-			return toFileSystemEntry(entry);
-		else
-			return null;
+		if (entry != null) {
+			if (entry.isFile) {
+				FileBlobIndexEntry fileBlobEntry = index.getFileBlobEntry(entry);
+				if (fileBlobEntry != null)
+					return toFileSystemEntry(entry, fileBlobEntry);
+			} else
+				return toFileSystemEntry(entry, null);
+		}
+
+		return null;
 	}
 
 	@Override
@@ -285,17 +292,18 @@ public class CloudFileSystem implements FileSystem {
 				 * This operation is not always possible. In case it is not
 				 * possible, we resort to the blob store directly.
 				 */
-				//What is the latest log record incorporated into the local cache blob?
+				// What is the latest log record incorporated into the local
+				// cache blob?
 				LogBlobKey localCacheLatestLogBlobKey = localCache.getLatestLogBlobKey(fileBlobName);
 				long localCacheLatestLogBlobLsn = localCacheLatestLogBlobKey.logBlobLsn;
 				String localCacheLatestLogBlobRandomId = localCacheLatestLogBlobKey.logBlobRandomId;
 
-				//What is the latest log record written into the file?
+				// What is the latest log record written into the file?
 				FileBlobIndexEntry fileBlobEntry = index.readFileBlobEntry(fileBlobName);
 				long latestLogBlobLsn = fileBlobEntry.latestLogBlobLsn;
 				String latestLogBlobRandomId = fileBlobEntry.latestLogBlobRandomId;
 
-				//Let's decide what to do next
+				// Let's decide what to do next
 				if (localCacheLatestLogBlobLsn >= 0) {
 					/*
 					 * We have a local cache blob and it incorporates all the
@@ -327,10 +335,11 @@ public class CloudFileSystem implements FileSystem {
 					 * we can simply start from the local cache
 					 */
 					if (!logBlobEntries.isEmpty() && logBlobEntries.peekFirst().logBlobLsn == localCacheLatestLogBlobLsn + 1) {
-						//Start from the local cache
+						// Start from the local cache
 						updateLocalCacheBlob_StartFromLocalCacheBlob(writer, logBlobEntries);
 					} else {
-						//We don't have all the necessary log records, so let's start from the blob store
+						// We don't have all the necessary log records, so let's
+						// start from the blob store
 						updateLocalCacheBlob_StartFromBlobStore(writer, logBlobEntries, latestLogBlobLsn, latestLogBlobRandomId);
 					}
 				} else {
@@ -353,30 +362,31 @@ public class CloudFileSystem implements FileSystem {
 				}
 			}
 
-			//Finally, update the latest local cache log blob key
+			// Finally, update the latest local cache log blob key
 			LogBlobIndexEntry latestEntry = logBlobEntries.peekLast();
 			localCache.setLatestLogBlobKey(fileBlobName, new LogBlobKey(latestEntry.logBlobLsn, latestEntry.logBlobRandomId));
 		}
 
 		private void updateLocalCacheBlob_StartFromBlobStore(AbsoluteByteWriter writer, LinkedList<LogBlobIndexEntry> logBlobEntries, long latestLogBlobLsn, String latestLogBlobRandomId) throws Exception {
-			//Read the file blob
+			// Read the file blob
 			FileMetaData meta = new FileMetaData();
 			try (ByteReader reader = blobStore.readFileBlob(fileBlobName, meta)) {
-				//Copy to local cache
+				// Copy to local cache
 				ByteReaderUtils.copy(reader, writer);
 			}
 
-			//Then determine which log records must be applied
+			// Then determine which log records must be applied
 			if (logBlobEntries == null) {
-				//If not specified, then we read here
+				// If not specified, then we read here
 				logBlobEntries = index.readLogBlobEntries(fileBlobName, meta.latestLogBlobLsn, meta.latestLogBlobRandomId, latestLogBlobLsn, latestLogBlobRandomId);
 			} else {
-				//If specified, we discard those already applied (i.e., those up to and including meta.latestLogBlobLsn)
+				// If specified, we discard those already applied (i.e., those
+				// up to and including meta.latestLogBlobLsn)
 				while (!logBlobEntries.isEmpty() && logBlobEntries.peekFirst().logBlobLsn <= meta.latestLogBlobLsn)
 					logBlobEntries.removeFirst();
 			}
 
-			//Finally, we apply the entries into the local cache
+			// Finally, we apply the entries into the local cache
 			updateLocalCacheBlob_StartFromLocalCacheBlob(writer, logBlobEntries);
 		}
 
