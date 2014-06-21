@@ -21,7 +21,7 @@ public class IndexDriverTest extends IndexDriver {
 	@Test
 	public void test_convertToDirectoryFileIndexEntry() throws Exception {
 		IndexEntry ie = new IndexEntry();
-		ie.key1 = Type_DirectoryOrFile;
+		ie.key1 = Type_DirectoryOrFile + ":A/B";
 		ie.key2 = "A/B/C";
 		ie.data1 = "";
 		ie.data2 = "";
@@ -33,7 +33,7 @@ public class IndexDriverTest extends IndexDriver {
 		assertEquals("", entry.fileBlobName);
 		assertEquals("", entry.targetAbsolutePath);
 
-		ie.key1 = Type_DirectoryOrFile;
+		ie.key1 = Type_DirectoryOrFile + ":A/B";
 		ie.key2 = "A/B/C";
 		ie.data1 = Flag_IsFile;
 		ie.data2 = "BLOB";
@@ -45,7 +45,7 @@ public class IndexDriverTest extends IndexDriver {
 		assertEquals("BLOB", entry.fileBlobName);
 		assertEquals("", entry.targetAbsolutePath);
 
-		ie.key1 = Type_DirectoryOrFile;
+		ie.key1 = Type_DirectoryOrFile + ":A/B";
 		ie.key2 = "A/B/C";
 		ie.data1 = Flag_IsSoftLink;
 		ie.data2 = "C/D/E";
@@ -57,7 +57,7 @@ public class IndexDriverTest extends IndexDriver {
 		assertEquals("", entry.fileBlobName);
 		assertEquals("C/D/E", entry.targetAbsolutePath);
 
-		ie.key1 = Type_DirectoryOrFile;
+		ie.key1 = Type_DirectoryOrFile + ":A/B";
 		ie.key2 = "A/B/C";
 		ie.data1 = Flag_IsFile + Flag_IsSoftLink;
 		ie.data2 = "C/D/E";
@@ -80,7 +80,7 @@ public class IndexDriverTest extends IndexDriver {
 		entry.targetAbsolutePath = "";
 
 		IndexEntry ie = convertToIndexEntry(entry);
-		assertEquals(Type_DirectoryOrFile, ie.key1);
+		assertEquals(Type_DirectoryOrFile + ":A/B", ie.key1);
 		assertEquals("A/B/C", ie.key2);
 		assertEquals("", ie.data1);
 		assertEquals("", ie.data2);
@@ -93,7 +93,7 @@ public class IndexDriverTest extends IndexDriver {
 		entry.targetAbsolutePath = "";
 
 		ie = convertToIndexEntry(entry);
-		assertEquals(Type_DirectoryOrFile, ie.key1);
+		assertEquals(Type_DirectoryOrFile + ":A/B", ie.key1);
 		assertEquals("A/B/C", ie.key2);
 		assertEquals(Flag_IsFile, ie.data1);
 		assertEquals("BLOB", ie.data2);
@@ -106,7 +106,7 @@ public class IndexDriverTest extends IndexDriver {
 		entry.targetAbsolutePath = "C/D/E";
 
 		ie = convertToIndexEntry(entry);
-		assertEquals(Type_DirectoryOrFile, ie.key1);
+		assertEquals(Type_DirectoryOrFile + ":A/B", ie.key1);
 		assertEquals("A/B/C", ie.key2);
 		assertEquals(Flag_IsFile + Flag_IsSoftLink, ie.data1);
 		assertEquals("C/D/E", ie.data2);
