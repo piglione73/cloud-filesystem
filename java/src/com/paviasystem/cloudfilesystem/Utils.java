@@ -1,5 +1,10 @@
 package com.paviasystem.cloudfilesystem;
 
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -35,6 +40,11 @@ public class Utils {
 			ret.add(x);
 
 		return ret;
+	}
+
+	public static FileChannel createTempFileChannel() throws IOException {
+		Path path = Files.createTempFile("CloudFileSystem", null);
+		return FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.DELETE_ON_CLOSE);
 	}
 
 }

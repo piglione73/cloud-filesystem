@@ -23,47 +23,23 @@ public class NodeManager {
 	 * @return
 	 */
 	public FileNode getFileNode(long nodeNumber) {
-		// First, let's try to read from the local cache
-		String blobName = Utils.padLeft(nodeNumber);
-		Blob blob = localCache.get(blobName);
-
-		// If not found, then let's hit the blob store
-		if (blob == null)
-			blob = blobStore.get(blobName);
-
-		/*
-		 * If not found, then it doesn't mean the file doesn't exist. It just
-		 * means we don't have a snapshot to start from, so we only use the log.
-		 */
-		if (blob == null) {
-			blob = new Blob();
-			blob.latestLogSequenceNumber = -1;
-			blob.bytes = createEmptyFileChannel();
-		}
+		// Get the latest node snapshot
+		Blob blob = NodeManagerUtils.getLatestNodeSnapshot(localCache, blobStore, nodeNumber);
 
 		/*
 		 * Now, we know from what snapshot to start. Let's apply log records to
 		 * it in order to get the most up-to-date version of this file blob.
 		 */
 		Stream<LogEntry> logEntries = log.read(nodeNumber, blob.latestLogSequenceNumber + 1);
-
-		logEntries.forEachOrdered(logEntry -> {
-			// Let's directly modify the blob
-				if (logEntry.type == LogEntry.FILE_SETLENGTH) {
-					// Change the file channel size. When extending, new bytes
-					// are set to zero
-					if (blob.bytes.size() < logEntry.length) {
-						blob.bytes.position(blob.bytes.size());
-						int bytesToAppend = logEntry.length - blob.bytes.size();
-						blob.bytes.write(ByteBuffer.allocate(bytesToAppend));
-					} else if (blob.bytes.size() > logEntry.length)
-						blob.bytes.truncate(logEntry.length);
-				} else if (logEntry.type == LogEntry.FILE_WRITE) {
-					blob.bytes.position(logEntry.positionFromEnd ? blob.bytes.size() - logEntry.position : logEntry.position);
-					blob.bytes.write(logEntry.bytes);
-				}
-			});
-
+		logEntries.forEachOrdered(logEntry -> NodeManagerUtils.applyLogEntryToFileNodeBlob(logEntry, blob));
+		
+		/*
+		 * Now that we have the most up-to-date snapshot, let's save in in cache
+		 */
+		NodeManagerUtils.cacheLatestNodeSnapshot(localCache,nodeNumber, blob);
+		
+		//Return the file node
+		FileNode node = new FileNode(nodeNumber, blob);
 	}
 
 	/**
