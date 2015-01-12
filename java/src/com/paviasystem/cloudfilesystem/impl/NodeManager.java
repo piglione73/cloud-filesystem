@@ -1,5 +1,6 @@
 package com.paviasystem.cloudfilesystem.impl;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.stream.Stream;
 
@@ -21,25 +22,26 @@ public class NodeManager {
 	 * 
 	 * @param nodeNumber
 	 * @return
+	 * @throws IOException 
 	 */
-	public FileNode getFileNode(long nodeNumber) {
+	public FileNode getFileNode(long nodeNumber) throws IOException {
 		// Get the latest node snapshot
-		Blob blob = NodeManagerUtils.getLatestNodeSnapshot(localCache, blobStore, nodeNumber);
-
+		FileNode node = NodeManagerUtils.getLatestFileNodeSnapshot(localCache, blobStore, nodeNumber);
+		
 		/*
 		 * Now, we know from what snapshot to start. Let's apply log records to
-		 * it in order to get the most up-to-date version of this file blob.
+		 * it in order to get the most up-to-date version of this node.
 		 */
-		Stream<LogEntry> logEntries = log.read(nodeNumber, blob.latestLogSequenceNumber + 1);
-		logEntries.forEachOrdered(logEntry -> NodeManagerUtils.applyLogEntryToFileNodeBlob(logEntry, blob));
-		
+		Stream<LogEntry> logEntries = log.read(nodeNumber, node.blob.latestLogSequenceNumber + 1);
+		logEntries.forEachOrdered(logEntry -> NodeManagerUtils.applyLogEntryToFileNode(logEntry, node));
+
 		/*
-		 * Now that we have the most up-to-date snapshot, let's save in in cache
+		 * Now that we have the most up-to-date snapshot, let's save it in cache
 		 */
-		NodeManagerUtils.cacheLatestNodeSnapshot(localCache,nodeNumber, blob);
-		
-		//Return the file node
-		FileNode node = new FileNode(nodeNumber, blob);
+		NodeManagerUtils.setLatestFileNodeSnapshot(localCache, nodeNumber, node);
+
+		// Return the node
+		return node;
 	}
 
 	/**
@@ -48,8 +50,25 @@ public class NodeManager {
 	 * 
 	 * @param nodeNumber
 	 * @return
+	 * @throws Exception 
 	 */
-	public DirectoryNode getDirectoryNode(long nodeNumber) {
+	public DirectoryNode getDirectoryNode(long nodeNumber) throws Exception {
+		// Get the latest node snapshot
+		DirectoryNode node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(localCache, blobStore, nodeNumber);
+		
+		/*
+		 * Now, we know from what snapshot to start. Let's apply log records to
+		 * it in order to get the most up-to-date version of this node.
+		 */
+		Stream<LogEntry> logEntries = log.read(nodeNumber, node.latestLogSequenceNumber + 1);
+		logEntries.forEachOrdered(logEntry -> NodeManagerUtils.applyLogEntryToDirectoryNode(logEntry, node));
 
+		/*
+		 * Now that we have the most up-to-date snapshot, let's save it in cache
+		 */
+		NodeManagerUtils.setLatestDirectoryNodeSnapshot(localCache, nodeNumber, node);
+
+		// Return the node
+		return node;
 	}
 }
