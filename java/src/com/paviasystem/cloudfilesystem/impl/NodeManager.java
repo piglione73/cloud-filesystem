@@ -1,14 +1,10 @@
 package com.paviasystem.cloudfilesystem.impl;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.stream.Stream;
 
-import com.paviasystem.cloudfilesystem.Blob;
 import com.paviasystem.cloudfilesystem.BlobStore;
 import com.paviasystem.cloudfilesystem.Log;
 import com.paviasystem.cloudfilesystem.LogEntry;
-import com.paviasystem.cloudfilesystemold.Utils;
 
 public class NodeManager {
 
@@ -22,18 +18,19 @@ public class NodeManager {
 	 * 
 	 * @param nodeNumber
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public FileNode getFileNode(long nodeNumber) throws IOException {
+	public FileNode getFileNode(long nodeNumber) throws Exception {
 		// Get the latest node snapshot
 		FileNode node = NodeManagerUtils.getLatestFileNodeSnapshot(localCache, blobStore, nodeNumber);
-		
+
 		/*
 		 * Now, we know from what snapshot to start. Let's apply log records to
 		 * it in order to get the most up-to-date version of this node.
 		 */
-		Stream<LogEntry> logEntries = log.read(nodeNumber, node.blob.latestLogSequenceNumber + 1);
-		logEntries.forEachOrdered(logEntry -> NodeManagerUtils.applyLogEntryToFileNode(logEntry, node));
+		Iterable<LogEntry> logEntries = log.read(nodeNumber, node.blob.latestLogSequenceNumber + 1);
+		for (LogEntry logEntry : logEntries)
+			NodeManagerUtils.applyLogEntryToFileNode(logEntry, node);
 
 		/*
 		 * Now that we have the most up-to-date snapshot, let's save it in cache
@@ -50,18 +47,19 @@ public class NodeManager {
 	 * 
 	 * @param nodeNumber
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public DirectoryNode getDirectoryNode(long nodeNumber) throws Exception {
 		// Get the latest node snapshot
 		DirectoryNode node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(localCache, blobStore, nodeNumber);
-		
+
 		/*
 		 * Now, we know from what snapshot to start. Let's apply log records to
 		 * it in order to get the most up-to-date version of this node.
 		 */
-		Stream<LogEntry> logEntries = log.read(nodeNumber, node.latestLogSequenceNumber + 1);
-		logEntries.forEachOrdered(logEntry -> NodeManagerUtils.applyLogEntryToDirectoryNode(logEntry, node));
+		Iterable<LogEntry> logEntries = log.read(nodeNumber, node.latestLogSequenceNumber + 1);
+		for (LogEntry logEntry : logEntries)
+			NodeManagerUtils.applyLogEntryToDirectoryNode(logEntry, node);
 
 		/*
 		 * Now that we have the most up-to-date snapshot, let's save it in cache

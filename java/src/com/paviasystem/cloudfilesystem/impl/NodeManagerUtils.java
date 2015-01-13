@@ -2,7 +2,7 @@ package com.paviasystem.cloudfilesystem.impl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.TreeSet;
 
@@ -15,7 +15,7 @@ public class NodeManagerUtils {
 
 	private static final ByteBuffer zeros64K = ByteBuffer.allocate(64 * 1024);
 
-	public static Blob getNodeBlob(BlobStore localCache, BlobStore blobStore, long nodeNumber) throws IOException {
+	public static Blob getNodeBlob(BlobStore localCache, BlobStore blobStore, long nodeNumber) throws Exception {
 		// First, let's try to read from the local cache
 		String blobName = Utils.padLeft(nodeNumber);
 		Blob blob = localCache.get(blobName);
@@ -34,18 +34,18 @@ public class NodeManagerUtils {
 		return blob;
 	}
 
-	public static FileNode getLatestFileNodeSnapshot(BlobStore localCache, BlobStore blobStore, long nodeNumber) throws IOException {
+	public static FileNode getLatestFileNodeSnapshot(BlobStore localCache, BlobStore blobStore, long nodeNumber) throws Exception {
 		Blob blob = getNodeBlob(localCache, blobStore, nodeNumber);
 		return new FileNode(nodeNumber, blob);
 	}
 
-	public static void setLatestFileNodeSnapshot(BlobStore destination, long nodeNumber, FileNode fileNode) {
+	public static void setLatestFileNodeSnapshot(BlobStore destination, long nodeNumber, FileNode fileNode) throws Exception {
 		String blobName = Utils.padLeft(nodeNumber);
 		destination.set(blobName, fileNode.blob);
 	}
 
 	public static void applyLogEntryToFileNode(LogEntry logEntry, FileNode fileNode) throws IOException {
-		FileChannel bytes = fileNode.blob.bytes;
+		SeekableByteChannel bytes = fileNode.blob.bytes;
 		long size = bytes.size();
 
 		// Here's the latest log seq. number incorporated into this node
@@ -88,7 +88,7 @@ public class NodeManagerUtils {
 			throw new IllegalArgumentException("logEntry");
 	}
 
-	public static DirectoryNode getLatestDirectoryNodeSnapshot(BlobStore localCache, BlobStore blobStore, long nodeNumber) throws IOException {
+	public static DirectoryNode getLatestDirectoryNodeSnapshot(BlobStore localCache, BlobStore blobStore, long nodeNumber) throws Exception {
 		Blob blob = getNodeBlob(localCache, blobStore, nodeNumber);
 
 		long lsn = blob.latestLogSequenceNumber;
@@ -119,7 +119,7 @@ public class NodeManagerUtils {
 		String blobName = Utils.padLeft(nodeNumber);
 
 		try (Blob blob = new Blob(dirNode.latestLogSequenceNumber, Utils.createTempFileChannel())) {
-			FileChannel bytes = blob.bytes;
+			SeekableByteChannel bytes = blob.bytes;
 			for (DirectoryNodeItem item : dirNode.listing) {
 				// Serialize each DirectoryNodeItem
 				ByteBuffer buf = ByteBuffer.allocate(1024);
@@ -133,7 +133,6 @@ public class NodeManagerUtils {
 				bytes.write(buf);
 			}
 
-			bytes.force(false);
 			destination.set(blobName, blob);
 		}
 	}

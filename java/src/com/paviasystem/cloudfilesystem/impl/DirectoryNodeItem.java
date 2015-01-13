@@ -5,7 +5,6 @@ public class DirectoryNodeItem implements Comparable<DirectoryNodeItem> {
 	public long nodeNumber;
 
 	public DirectoryNodeItem(String name, long nodeNumber) {
-		super();
 		this.name = name;
 		this.nodeNumber = nodeNumber;
 	}

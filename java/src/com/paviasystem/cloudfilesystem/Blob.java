@@ -1,12 +1,12 @@
 package com.paviasystem.cloudfilesystem;
 
-import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 
 public class Blob implements AutoCloseable {
 	public long latestLogSequenceNumber;
-	public FileChannel bytes;
+	public SeekableByteChannel bytes;
 
-	public Blob(long latestLogSequenceNumber, FileChannel bytes) {
+	public Blob(long latestLogSequenceNumber, SeekableByteChannel bytes) {
 		this.latestLogSequenceNumber = latestLogSequenceNumber;
 		this.bytes = bytes;
 	}
