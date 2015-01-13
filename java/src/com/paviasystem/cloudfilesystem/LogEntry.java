@@ -12,6 +12,9 @@ public class LogEntry {
 	// Key
 	public long logSequenceNumber;
 
+	// Reference node
+	public long nodeNumber;
+
 	// Type
 	public byte type;
 
@@ -24,4 +27,16 @@ public class LogEntry {
 	// Data for directory entries
 	public String itemName;
 	public long itemNodeNumber;
+
+	public LogEntry(long logSequenceNumber, long nodeNumber, byte type, long position, boolean positionFromEnd, long length, ByteBuffer bytes, String itemName, long itemNodeNumber) {
+		this.logSequenceNumber = logSequenceNumber;
+		this.nodeNumber = nodeNumber;
+		this.type = type;
+		this.position = position;
+		this.positionFromEnd = positionFromEnd;
+		this.length = length;
+		this.bytes = bytes;
+		this.itemName = itemName;
+		this.itemNodeNumber = itemNodeNumber;
+	}
 }

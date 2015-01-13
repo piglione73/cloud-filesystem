@@ -26,7 +26,7 @@ public class MemoryBlobStore implements BlobStore {
 	}
 
 	@Override
-	public Blob get(String blobName) throws IOException {
+	public Blob get(String blobName) throws Exception {
 		Blob blob = blobs.get(blobName);
 		if (blob == null)
 			return null;
@@ -35,8 +35,14 @@ public class MemoryBlobStore implements BlobStore {
 	}
 
 	@Override
-	public void set(String blobName, Blob blob) throws IOException {
-		blobs.put(blobName, clone(blob));
+	public void set(String blobName, Blob blob) throws Exception {
+		if (blob != null)
+			blobs.put(blobName, clone(blob));
+		else {
+			Blob old = blobs.remove(blobName);
+			if (old != null)
+				old.close();
+		}
 	}
 
 }

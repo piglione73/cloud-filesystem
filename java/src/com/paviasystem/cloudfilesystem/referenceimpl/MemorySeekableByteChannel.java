@@ -8,27 +8,35 @@ public class MemorySeekableByteChannel implements SeekableByteChannel {
 
 	boolean open;
 	ByteBuffer buf;
+	long pos;
 
 	public MemorySeekableByteChannel() {
 		open = true;
 		buf = ByteBuffer.allocate(1);
-		buf.position(0);
+		pos = 0;
 		buf.limit(0);
 	}
 
 	void ensureCapacity(int minCapacity) {
 		if (minCapacity > buf.capacity()) {
 			// Extend "buf"
-			int p = buf.position();
 			int l = buf.limit();
 			ByteBuffer newBuf = ByteBuffer.allocate(minCapacity);
 			newBuf.position(0).limit(l);
 
 			buf.position(0);
-			newBuf.put(buf).clear().position(p).limit(l);
+			newBuf.put(buf);
 
 			buf = newBuf;
 		}
+	}
+
+	public byte[] toByteArray() {
+		byte[] arr = new byte[buf.limit()];
+		ByteBuffer buf2 = buf.duplicate();
+		buf2.position(0);
+		buf2.get(arr);
+		return arr;
 	}
 
 	@Override
@@ -43,27 +51,32 @@ public class MemorySeekableByteChannel implements SeekableByteChannel {
 
 	@Override
 	public long position() throws IOException {
-		return buf.position();
+		return pos;
 	}
 
 	@Override
 	public SeekableByteChannel position(long newPosition) throws IOException {
-		buf.position((int) newPosition);
+		pos = newPosition;
 		return this;
 	}
 
 	@Override
 	public int read(ByteBuffer dst) throws IOException {
+		if (pos >= buf.limit())
+			return -1;
+
 		int r = dst.remaining();
 
 		// Let's try to read "r" bytes from the channel into "dst"
+		buf.position((int) pos);
 		ByteBuffer bytesToTransfer = buf.slice();
 		bytesToTransfer.limit(Math.min(r, bytesToTransfer.limit()));
 		if (bytesToTransfer.limit() == 0) {
 			// EOF
 			return -1;
 		} else {
-			dst.put(buf);
+			dst.put(bytesToTransfer);
+			pos += bytesToTransfer.limit();
 			return bytesToTransfer.limit();
 		}
 	}
@@ -78,7 +91,7 @@ public class MemorySeekableByteChannel implements SeekableByteChannel {
 		if (size < buf.limit())
 			buf.limit((int) size);
 
-		buf.position(Math.min(buf.position(), (int) size));
+		pos = Math.min(pos, size);
 
 		return this;
 	}
@@ -86,10 +99,12 @@ public class MemorySeekableByteChannel implements SeekableByteChannel {
 	@Override
 	public int write(ByteBuffer src) throws IOException {
 		int r = src.remaining();
-		int newLimit = buf.position() + r;
+		int newLimit = Math.max(buf.limit(), (int) pos + r);
 		ensureCapacity(newLimit);
 		buf.limit(newLimit);
+		buf.position((int) pos);
 		buf.put(src);
+		pos += r;
 		return r;
 	}
 

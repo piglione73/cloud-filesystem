@@ -34,10 +34,10 @@ public class BlobStoreTest {
 		aaaCh.write(ByteBuffer.wrap(aaa));
 
 		MemorySeekableByteChannel bbbCh = new MemorySeekableByteChannel();
-		aaaCh.write(ByteBuffer.wrap(bbb));
+		bbbCh.write(ByteBuffer.wrap(bbb));
 
 		MemorySeekableByteChannel cccCh = new MemorySeekableByteChannel();
-		aaaCh.write(ByteBuffer.wrap(ccc));
+		cccCh.write(ByteBuffer.wrap(ccc));
 
 		bs.set("aaa", new Blob(1, aaaCh));
 		bs.set("bbb", new Blob(2, bbbCh));
