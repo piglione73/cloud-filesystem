@@ -1,12 +1,16 @@
 package com.paviasystem.cloudfilesystem.test;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
 
-import com.paviasystem.cloudfilesystem.*;
-import com.paviasystem.cloudfilesystem.referenceimpl.*;
+import com.paviasystem.cloudfilesystem.Log;
+import com.paviasystem.cloudfilesystem.LogEntry;
+import com.paviasystem.cloudfilesystem.referenceimpl.MemoryLog;
 
 public class LogTest {
 
@@ -34,6 +38,7 @@ public class LogTest {
 		x.addFileSetLengthEntry(3, 20);
 		x.addFileSetLengthEntry(3, 30);
 		x.addDirectoryDeleteItemEntry(0, "Item 2");
+		x.addFileWriteEntry(3, 57, true, ByteBuffer.wrap(new byte[] { 0, 1, 2, 3, 4 }));
 
 		LogEntry[] y = toArray(x.read(0, 0));
 
@@ -53,10 +58,14 @@ public class LogTest {
 
 		y = toArray(x.read(3, 6));
 
-		assertEquals(2, y.length);
+		assertEquals(3, y.length);
+		assertEquals(LogEntry.FILE_SETLENGTH, y[0].type);
 		assertEquals(20, y[0].length);
 		assertEquals(30, y[1].length);
-
-		fail("Insert more tests!");
+		assertEquals(3, y[2].nodeNumber);
+		assertEquals(57, y[2].position);
+		assertEquals(true, y[2].positionFromEnd);
+		assertEquals(LogEntry.FILE_WRITE, y[2].type);
+		assertArrayEquals(new byte[] { 0, 1, 2, 3, 4 }, y[2].bytes.array());
 	}
 }
