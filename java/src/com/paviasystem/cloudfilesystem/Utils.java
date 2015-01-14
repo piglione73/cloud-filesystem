@@ -1,7 +1,9 @@
 package com.paviasystem.cloudfilesystem;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -45,6 +47,15 @@ public class Utils {
 	public static FileChannel createTempFileChannel() throws IOException {
 		Path path = Files.createTempFile("CloudFileSystem", null);
 		return FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.DELETE_ON_CLOSE);
+	}
+
+	public static void copyAll(SeekableByteChannel from, SeekableByteChannel to) throws IOException {
+		ByteBuffer buf = ByteBuffer.allocate(64 * 1024);
+		for (int n = from.read(buf); n != -1; n = from.read(buf)) {
+			buf.flip();
+			to.write(buf);
+			buf.clear();
+		}
 	}
 
 }
