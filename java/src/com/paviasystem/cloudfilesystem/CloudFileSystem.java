@@ -6,61 +6,47 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.UUID;
 
-import com.paviasystem.cloudfilesystem.File;
-import com.paviasystem.cloudfilesystem.FileSystem;
-import com.paviasystem.cloudfilesystem.Path;
-import com.paviasystem.cloudfilesystem.components.Log;
-import com.paviasystem.cloudfilesystemold.blocks.AbsoluteByteReader;
-import com.paviasystem.cloudfilesystemold.blocks.AbsoluteByteWriter;
-import com.paviasystem.cloudfilesystemold.blocks.BlobStore;
-import com.paviasystem.cloudfilesystemold.blocks.ByteReader;
-import com.paviasystem.cloudfilesystemold.blocks.ByteReaderUtils;
-import com.paviasystem.cloudfilesystemold.blocks.ByteWriter;
-import com.paviasystem.cloudfilesystemold.blocks.Index;
-import com.paviasystem.cloudfilesystemold.blocks.LazyMirroring;
-import com.paviasystem.cloudfilesystemold.blocks.LocalCache;
-import com.paviasystem.cloudfilesystemold.blocks.LockManager;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.BlobStoreDriver;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.IndexDriver;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.LocalCacheDriver;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.BlobStoreDriver.FileMetaData;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.data.DirectoryFileIndexEntry;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.data.FileBlobIndexEntry;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.data.LogBlobIndexEntry;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.data.LogBlobKey;
-import com.paviasystem.cloudfilesystemold.blocks.drivers.data.LogBlobPart;
-import com.paviasystem.cloudfilesystemold.data.FileSystemEntry;
+import com.paviasystem.cloudfilesystem.components.*;
+import com.paviasystem.cloudfilesystem.exceptions.*;
 
 public class CloudFileSystem implements FileSystem {
 	final BlobStore blobStore;
 	final BlobStore localCache;
 	final Log log;
-	
+
+	final NodeManager nm;
+
 	public CloudFileSystem(BlobStore blobStore, BlobStore localCache, Log log) {
 		super();
 		this.blobStore = blobStore;
 		this.localCache = localCache;
 		this.log = log;
+
+		this.nm = new NodeManager(blobStore, localCache, log);
 	}
 
 	@Override
-	public ArrayList<FileSystemEntry> listDirectory(String absolutePath) {
-		absolutePath = Path.normalize(absolutePath);
-		Iterable<DirectoryFileIndexEntry> entries = index.listChildrenDirectoryFileEntries(absolutePath);
+	public ArrayList<FileSystemEntry> listDirectory(String absolutePath) throws Exception {
+		DirectoryNode directory = nm.getDirectoryNode(absolutePath);
+		
 		ArrayList<FileSystemEntry> ret = new ArrayList<FileSystemEntry>();
-		for (DirectoryFileIndexEntry entry : entries)
-			ret.add(toFileSystemEntry(entry, null));
+		for (DirectoryNodeItem entry : directory.listing)
+			ret.add(toFileSystemEntry(entry));
 
 		return ret;
 	}
 
-	private FileSystemEntry toFileSystemEntry(DirectoryFileIndexEntry entry, FileBlobIndexEntry fileBlobEntry) {
+	private FileSystemEntry toFileSystemEntry(DirectoryNodeItem entry) {
 		return new FileSystemEntry(this, entry.absolutePath, entry.isFile, entry.isSoftLink, entry.targetAbsolutePath, fileBlobEntry != null ? fileBlobEntry.creationTimestamp : new Date(), fileBlobEntry != null ? fileBlobEntry.lastEditTimestamp : new Date(),
 				fileBlobEntry != null ? fileBlobEntry.length : 0);
 	}
 
 	@Override
 	public FileSystemEntry getEntry(String absolutePath) throws Exception {
+		String parentPath = Path.getParent(absolutePath);
+		String name = Path.getName(absolutePath);
+		DirectoryNode directory = nm.getDirectoryNode(parentPath);
+		
 		// File system entries are in a strongly-consistent file system index
 		absolutePath = Path.normalize(absolutePath);
 		DirectoryFileIndexEntry entry = index.readDirectoryFileEntry(absolutePath);

@@ -1,16 +1,15 @@
 package com.paviasystem.cloudfilesystem.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 
 import org.junit.Test;
 
-import com.paviasystem.cloudfilesystem.referenceimpl.*;
 import com.paviasystem.cloudfilesystem.components.Blob;
 import com.paviasystem.cloudfilesystem.components.NodeCache;
-import com.paviasystem.cloudfilesystem.impl.*;
+import com.paviasystem.cloudfilesystem.referenceimpl.MemorySeekableByteChannel;
 
 public class NodeCacheTest {
 	@Test

@@ -110,4 +110,18 @@ public final class Path {
 			return compose(parentParts);
 		}
 	}
+
+	public static String getName(String path) {
+		if (path == null)
+			return null;
+
+		String[] parts = decompose(path);
+		if (parts.length == 0) {
+			// It is root --> no name
+			return null;
+		} else {
+			// Non-root --> the name is the last part
+			return parts[parts.length - 1];
+		}
+	}
 }
