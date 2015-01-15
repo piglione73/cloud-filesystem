@@ -2,9 +2,9 @@ package com.paviasystem.cloudfilesystem.impl;
 
 import java.io.IOException;
 
-import com.paviasystem.cloudfilesystem.BlobStore;
-import com.paviasystem.cloudfilesystem.Log;
-import com.paviasystem.cloudfilesystem.LogEntry;
+import com.paviasystem.cloudfilesystem.components.BlobStore;
+import com.paviasystem.cloudfilesystem.components.Log;
+import com.paviasystem.cloudfilesystem.components.LogEntry;
 
 public class NodeManager {
 

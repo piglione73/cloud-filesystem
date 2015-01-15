@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.components;
 
 public interface BlobStore {
 	Blob get(String blobName) throws Exception;

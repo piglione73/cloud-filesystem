@@ -10,8 +10,8 @@ import java.util.ArrayList;
 
 import org.junit.Test;
 
-import com.paviasystem.cloudfilesystem.Log;
-import com.paviasystem.cloudfilesystem.LogEntry;
+import com.paviasystem.cloudfilesystem.components.Log;
+import com.paviasystem.cloudfilesystem.components.LogEntry;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryLog;
 
 public class LogTest {

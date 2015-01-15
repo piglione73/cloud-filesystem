@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem;
+package com.paviasystem.cloudfilesystem.components;
 
 import java.io.EOFException;
 import java.io.IOException;

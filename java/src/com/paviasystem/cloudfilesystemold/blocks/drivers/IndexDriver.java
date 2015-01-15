@@ -5,13 +5,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import com.paviasystem.cloudfilesystem.Path;
 import com.paviasystem.cloudfilesystemold.Utils;
 import com.paviasystem.cloudfilesystemold.blocks.Index;
 import com.paviasystem.cloudfilesystemold.blocks.data.IndexEntry;
 import com.paviasystem.cloudfilesystemold.blocks.drivers.data.DirectoryFileIndexEntry;
 import com.paviasystem.cloudfilesystemold.blocks.drivers.data.FileBlobIndexEntry;
 import com.paviasystem.cloudfilesystemold.blocks.drivers.data.LogBlobIndexEntry;
-import com.paviasystem.filesystem.Path;
 
 public class IndexDriver {
 	protected static final String Type_DirectoryOrFile = "DF";

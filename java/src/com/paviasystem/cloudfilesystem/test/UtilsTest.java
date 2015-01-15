@@ -7,7 +7,7 @@ import java.util.Date;
 
 import org.junit.Test;
 
-import com.paviasystem.cloudfilesystem.Utils;
+import com.paviasystem.cloudfilesystem.components.Utils;
 
 public class UtilsTest {
 	@Test

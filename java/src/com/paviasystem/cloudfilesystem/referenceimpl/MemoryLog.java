@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-import com.paviasystem.cloudfilesystem.Log;
-import com.paviasystem.cloudfilesystem.LogEntry;
+import com.paviasystem.cloudfilesystem.components.Log;
+import com.paviasystem.cloudfilesystem.components.LogEntry;
 
 public class MemoryLog implements Log {
 

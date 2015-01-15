@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 
-import com.paviasystem.cloudfilesystem.Blob;
-import com.paviasystem.cloudfilesystem.BlobStore;
+import com.paviasystem.cloudfilesystem.components.Blob;
+import com.paviasystem.cloudfilesystem.components.BlobStore;
 
 public class MemoryBlobStore implements BlobStore {
 

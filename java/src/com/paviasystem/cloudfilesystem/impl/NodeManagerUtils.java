@@ -6,10 +6,10 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.TreeSet;
 
-import com.paviasystem.cloudfilesystem.Blob;
-import com.paviasystem.cloudfilesystem.BlobStore;
-import com.paviasystem.cloudfilesystem.LogEntry;
-import com.paviasystem.cloudfilesystem.Utils;
+import com.paviasystem.cloudfilesystem.components.Blob;
+import com.paviasystem.cloudfilesystem.components.BlobStore;
+import com.paviasystem.cloudfilesystem.components.LogEntry;
+import com.paviasystem.cloudfilesystem.components.Utils;
 import com.paviasystem.cloudfilesystem.impl.DirectoryNodeItem.Type;
 
 public class NodeManagerUtils {

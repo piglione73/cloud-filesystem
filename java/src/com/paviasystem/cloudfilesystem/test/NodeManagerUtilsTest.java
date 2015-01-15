@@ -10,9 +10,9 @@ import java.util.TreeSet;
 
 import org.junit.Test;
 
-import com.paviasystem.cloudfilesystem.Blob;
-import com.paviasystem.cloudfilesystem.LogEntry;
-import com.paviasystem.cloudfilesystem.Utils;
+import com.paviasystem.cloudfilesystem.components.Blob;
+import com.paviasystem.cloudfilesystem.components.LogEntry;
+import com.paviasystem.cloudfilesystem.components.Utils;
 import com.paviasystem.cloudfilesystem.impl.DirectoryNode;
 import com.paviasystem.cloudfilesystem.impl.DirectoryNodeItem;
 import com.paviasystem.cloudfilesystem.impl.DirectoryNodeItem.Type;

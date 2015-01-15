@@ -6,6 +6,9 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.UUID;
 
+import com.paviasystem.cloudfilesystem.File;
+import com.paviasystem.cloudfilesystem.FileSystem;
+import com.paviasystem.cloudfilesystem.Path;
 import com.paviasystem.cloudfilesystemold.blocks.AbsoluteByteReader;
 import com.paviasystem.cloudfilesystemold.blocks.AbsoluteByteWriter;
 import com.paviasystem.cloudfilesystemold.blocks.BlobStore;
@@ -26,9 +29,6 @@ import com.paviasystem.cloudfilesystemold.blocks.drivers.data.LogBlobIndexEntry;
 import com.paviasystem.cloudfilesystemold.blocks.drivers.data.LogBlobKey;
 import com.paviasystem.cloudfilesystemold.blocks.drivers.data.LogBlobPart;
 import com.paviasystem.cloudfilesystemold.data.FileSystemEntry;
-import com.paviasystem.filesystem.File;
-import com.paviasystem.filesystem.FileSystem;
-import com.paviasystem.filesystem.Path;
 
 public class CloudFileSystem implements FileSystem {
 	final BlobStoreDriver blobStore;
