@@ -2,9 +2,6 @@ package com.paviasystem.cloudfilesystem;
 
 import java.util.Date;
 
-import com.paviasystem.cloudfilesystem.FileSystem;
-import com.paviasystem.cloudfilesystem.Path;
-
 /**
  * An entry in a filesystem listing. Can be a directory entry or a file entry.
  * 
