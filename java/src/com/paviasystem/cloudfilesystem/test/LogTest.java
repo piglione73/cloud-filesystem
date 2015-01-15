@@ -2,6 +2,8 @@ package com.paviasystem.cloudfilesystem.test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -29,11 +31,11 @@ public class LogTest {
 	private void test(Log x) {
 		assertEquals(0, toArray(x.read(1, 0)).length);
 
-		x.addDirectorySetItemEntry(0, "Item 0", 1);
+		x.addDirectorySetItemEntry(0, "Item 0", false, 1);
 		x.addFileSetLengthEntry(1, 10);
-		x.addDirectorySetItemEntry(0, "Item 1", 2);
+		x.addDirectorySetItemEntry(0, "Item 1", true, 2);
 		x.addFileSetLengthEntry(2, 20);
-		x.addDirectorySetItemEntry(0, "Item 2", 3);
+		x.addDirectorySetItemEntry(0, "Item 2", false, 3);
 		x.addFileSetLengthEntry(3, 10);
 		x.addFileSetLengthEntry(3, 20);
 		x.addFileSetLengthEntry(3, 30);
@@ -45,8 +47,10 @@ public class LogTest {
 		assertEquals(4, y.length);
 		assertEquals("Item 0", y[0].itemName);
 		assertEquals(1, y[0].itemNodeNumber);
+		assertFalse(y[0].itemIsDirectory);
 		assertEquals("Item 1", y[1].itemName);
 		assertEquals(2, y[1].itemNodeNumber);
+		assertTrue(y[1].itemIsDirectory);
 
 		y = toArray(x.read(0, 1));
 

@@ -10,6 +10,7 @@ import com.paviasystem.cloudfilesystem.Blob;
 import com.paviasystem.cloudfilesystem.BlobStore;
 import com.paviasystem.cloudfilesystem.LogEntry;
 import com.paviasystem.cloudfilesystem.Utils;
+import com.paviasystem.cloudfilesystem.impl.DirectoryNodeItem.Type;
 
 public class NodeManagerUtils {
 
@@ -26,7 +27,7 @@ public class NodeManagerUtils {
 
 		/*
 		 * If not found, then it doesn't mean the node doesn't exist. It just
-		 * means we don't have a snapshot to start from, so we only use the log.
+		 * means its snapshot is empty
 		 */
 		if (blob == null)
 			blob = new Blob(-1, Utils.createTempFileChannel());
@@ -41,7 +42,10 @@ public class NodeManagerUtils {
 
 	public static void setLatestFileNodeSnapshot(BlobStore destination, long nodeNumber, FileNode fileNode) throws Exception {
 		String blobName = Utils.padLeft(nodeNumber);
-		destination.set(blobName, fileNode.blob);
+		if (fileNode != null)
+			destination.set(blobName, fileNode.blob);
+		else
+			destination.set(blobName, null);
 	}
 
 	public static void applyLogEntryToFileNode(LogEntry logEntry, FileNode fileNode) throws IOException {
@@ -94,10 +98,7 @@ public class NodeManagerUtils {
 		long lsn = blob.latestLogSequenceNumber;
 
 		// Read all into ByteBuffer
-		ByteBuffer buf = ByteBuffer.allocate((int) blob.bytes.size());
-		while (blob.bytes.read(buf) != -1) {
-		}
-		buf.flip();
+		ByteBuffer buf = Utils.readFrom(blob.bytes, (int) blob.bytes.size());
 
 		// Deserialize the listing
 		TreeSet<DirectoryNodeItem> listing = new TreeSet<DirectoryNodeItem>();
@@ -106,9 +107,10 @@ public class NodeManagerUtils {
 			byte[] binaryName = new byte[binaryNameLength];
 			buf.get(binaryName);
 			String name = new String(binaryName, StandardCharsets.UTF_8);
+			boolean itemIsDirectory = (buf.get() == 1);
 			long itemNodeNumber = buf.getLong();
 
-			DirectoryNodeItem item = new DirectoryNodeItem(name, itemNodeNumber);
+			DirectoryNodeItem item = new DirectoryNodeItem(name, itemIsDirectory ? Type.DIRECTORY : Type.FILE, itemNodeNumber);
 			listing.add(item);
 		}
 
@@ -117,6 +119,10 @@ public class NodeManagerUtils {
 
 	public static void setLatestDirectoryNodeSnapshot(BlobStore destination, long nodeNumber, DirectoryNode dirNode) throws IOException, Exception {
 		String blobName = Utils.padLeft(nodeNumber);
+		if (dirNode == null) {
+			destination.set(blobName, null);
+			return;
+		}
 
 		try (Blob blob = new Blob(dirNode.latestLogSequenceNumber, Utils.createTempFileChannel())) {
 			SeekableByteChannel bytes = blob.bytes;
@@ -126,6 +132,7 @@ public class NodeManagerUtils {
 				byte[] binaryName = item.name.getBytes(StandardCharsets.UTF_8);
 				buf.putInt(binaryName.length);
 				buf.put(binaryName);
+				buf.put(item.type == Type.DIRECTORY ? (byte) 1 : (byte) 0);
 				buf.putLong(item.nodeNumber);
 
 				// Write
@@ -144,11 +151,11 @@ public class NodeManagerUtils {
 		// Let's directly modify the listing
 		if (logEntry.type == LogEntry.DIRECTORY_SETITEM) {
 			// Add or edit item
-			dirNode.listing.add(new DirectoryNodeItem(logEntry.itemName, logEntry.itemNodeNumber));
+			dirNode.listing.add(new DirectoryNodeItem(logEntry.itemName, logEntry.itemIsDirectory ? Type.DIRECTORY : Type.FILE, logEntry.itemNodeNumber));
 		} else if (logEntry.type == LogEntry.DIRECTORY_DELETEITEM) {
 			// Delete item by name (other members are ignored by
 			// DirectoryNodeItem.equals)
-			dirNode.listing.remove(new DirectoryNodeItem(logEntry.itemName, 0));
+			dirNode.listing.remove(new DirectoryNodeItem(logEntry.itemName, Type.FILE, 0));
 		} else
 			throw new IllegalArgumentException("logEntry");
 	}

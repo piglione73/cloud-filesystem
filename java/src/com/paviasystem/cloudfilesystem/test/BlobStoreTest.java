@@ -6,11 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 
 import org.junit.Test;
 
 import com.paviasystem.cloudfilesystem.Blob;
 import com.paviasystem.cloudfilesystem.BlobStore;
+import com.paviasystem.cloudfilesystem.Utils;
+import com.paviasystem.cloudfilesystem.impl.NodeCache;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryBlobStore;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemorySeekableByteChannel;
 
@@ -18,6 +21,12 @@ public class BlobStoreTest {
 	@Test
 	public void test01_MemoryBlobStore() throws Exception {
 		MemoryBlobStore bs = new MemoryBlobStore();
+		test(bs);
+	}
+
+	@Test
+	public void test02_NodeCache() throws Exception {
+		NodeCache bs = new NodeCache(Files.createTempDirectory("NodeCacheTest"));
 		test(bs);
 	}
 
@@ -54,16 +63,16 @@ public class BlobStoreTest {
 		check(bs, "ccc", 3, ccc);
 	}
 
-	private void check(BlobStore bs, String key, int lsn, byte[] bytes) throws Exception {
-		Blob b = bs.get(key);
-		assertNotNull(b);
-		assertEquals(lsn, b.latestLogSequenceNumber);
-		assertEquals(bytes.length, b.bytes.size());
+	public static void check(BlobStore bs, String key, int lsn, byte[] bytes) throws Exception {
+		try (Blob b = bs.get(key)) {
+			assertNotNull(b);
+			assertEquals(lsn, b.latestLogSequenceNumber);
+			assertEquals(bytes.length, b.bytes.size());
 
-		b.bytes.position(0);
-		ByteBuffer buf = ByteBuffer.allocate((int) b.bytes.size());
-		b.bytes.read(buf);
-		assertArrayEquals(bytes, buf.array());
+			b.bytes.position(0);
+			ByteBuffer buf = Utils.readFrom(b.bytes, (int) b.bytes.size());
+			assertArrayEquals(bytes, buf.array());
+		}
 	}
 
 	private void check(BlobStore bs, String key) throws Exception {

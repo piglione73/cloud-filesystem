@@ -26,9 +26,10 @@ public class LogEntry {
 
 	// Data for directory entries
 	public String itemName;
+	public boolean itemIsDirectory;
 	public long itemNodeNumber;
 
-	public LogEntry(long logSequenceNumber, long nodeNumber, byte type, long position, boolean positionFromEnd, long length, ByteBuffer bytes, String itemName, long itemNodeNumber) {
+	public LogEntry(long logSequenceNumber, long nodeNumber, byte type, long position, boolean positionFromEnd, long length, ByteBuffer bytes, String itemName, boolean itemIsDirectory, long itemNodeNumber) {
 		this.logSequenceNumber = logSequenceNumber;
 		this.nodeNumber = nodeNumber;
 		this.type = type;
@@ -37,6 +38,7 @@ public class LogEntry {
 		this.length = length;
 		this.bytes = bytes;
 		this.itemName = itemName;
+		this.itemIsDirectory = itemIsDirectory;
 		this.itemNodeNumber = itemNodeNumber;
 	}
 }

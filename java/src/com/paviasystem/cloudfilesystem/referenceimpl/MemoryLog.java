@@ -26,9 +26,9 @@ public class MemoryLog implements Log {
 	}
 
 	@Override
-	public synchronized long add(long nodeNumber, byte type, long position, boolean positionFromEnd, long length, ByteBuffer bytes, String itemName, long itemNodeNumber) {
+	public synchronized long add(long nodeNumber, byte type, long position, boolean positionFromEnd, long length, ByteBuffer bytes, String itemName, boolean itemisDirectory, long itemNodeNumber) {
 		long logSequenceNumber = entries.size();
-		LogEntry logEntry = new LogEntry(logSequenceNumber, nodeNumber, type, position, positionFromEnd, length, bytes, itemName, itemNodeNumber);
+		LogEntry logEntry = new LogEntry(logSequenceNumber, nodeNumber, type, position, positionFromEnd, length, bytes, itemName, itemisDirectory, itemNodeNumber);
 		entries.add(logEntry);
 		return logSequenceNumber;
 	}

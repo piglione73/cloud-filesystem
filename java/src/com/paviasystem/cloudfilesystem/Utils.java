@@ -1,5 +1,6 @@
 package com.paviasystem.cloudfilesystem;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -56,6 +57,20 @@ public class Utils {
 			to.write(buf);
 			buf.clear();
 		}
+	}
+
+	public static ByteBuffer readFrom(SeekableByteChannel from, int bytesToRead) throws IOException {
+		ByteBuffer buf = ByteBuffer.allocate(bytesToRead);
+		while (bytesToRead > 0) {
+			int n = from.read(buf);
+			if (n == -1)
+				throw new EOFException();
+
+			bytesToRead -= n;
+		}
+
+		buf.flip();
+		return buf;
 	}
 
 }
