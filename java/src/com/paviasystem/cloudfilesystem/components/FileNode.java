@@ -1,6 +1,5 @@
-package com.paviasystem.cloudfilesystem.impl;
+package com.paviasystem.cloudfilesystem.components;
 
-import com.paviasystem.cloudfilesystem.components.Blob;
 
 public class FileNode extends Node {
 	public final Blob blob;

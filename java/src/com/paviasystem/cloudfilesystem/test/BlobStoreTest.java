@@ -12,8 +12,8 @@ import org.junit.Test;
 
 import com.paviasystem.cloudfilesystem.components.Blob;
 import com.paviasystem.cloudfilesystem.components.BlobStore;
+import com.paviasystem.cloudfilesystem.components.NodeCache;
 import com.paviasystem.cloudfilesystem.components.Utils;
-import com.paviasystem.cloudfilesystem.impl.NodeCache;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryBlobStore;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemorySeekableByteChannel;
 

@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.impl;
+package com.paviasystem.cloudfilesystem.components;
 
 public class DirectoryNodeItem implements Comparable<DirectoryNodeItem> {
 	public static enum Type {

@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.impl;
+package com.paviasystem.cloudfilesystem.components;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -6,11 +6,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.TreeSet;
 
-import com.paviasystem.cloudfilesystem.components.Blob;
-import com.paviasystem.cloudfilesystem.components.BlobStore;
-import com.paviasystem.cloudfilesystem.components.LogEntry;
-import com.paviasystem.cloudfilesystem.components.Utils;
-import com.paviasystem.cloudfilesystem.impl.DirectoryNodeItem.Type;
+import com.paviasystem.cloudfilesystem.components.DirectoryNodeItem.Type;
 
 public class NodeManagerUtils {
 

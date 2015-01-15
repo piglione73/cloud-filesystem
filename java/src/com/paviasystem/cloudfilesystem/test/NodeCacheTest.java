@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import com.paviasystem.cloudfilesystem.referenceimpl.*;
 import com.paviasystem.cloudfilesystem.components.Blob;
+import com.paviasystem.cloudfilesystem.components.NodeCache;
 import com.paviasystem.cloudfilesystem.impl.*;
 
 public class NodeCacheTest {

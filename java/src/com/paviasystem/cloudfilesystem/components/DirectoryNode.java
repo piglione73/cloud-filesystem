@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.impl;
+package com.paviasystem.cloudfilesystem.components;
 
 import java.util.TreeSet;
 

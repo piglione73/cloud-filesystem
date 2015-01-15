@@ -11,13 +11,13 @@ import java.util.TreeSet;
 import org.junit.Test;
 
 import com.paviasystem.cloudfilesystem.components.Blob;
+import com.paviasystem.cloudfilesystem.components.DirectoryNode;
+import com.paviasystem.cloudfilesystem.components.DirectoryNodeItem;
+import com.paviasystem.cloudfilesystem.components.FileNode;
 import com.paviasystem.cloudfilesystem.components.LogEntry;
+import com.paviasystem.cloudfilesystem.components.NodeManagerUtils;
 import com.paviasystem.cloudfilesystem.components.Utils;
-import com.paviasystem.cloudfilesystem.impl.DirectoryNode;
-import com.paviasystem.cloudfilesystem.impl.DirectoryNodeItem;
-import com.paviasystem.cloudfilesystem.impl.DirectoryNodeItem.Type;
-import com.paviasystem.cloudfilesystem.impl.FileNode;
-import com.paviasystem.cloudfilesystem.impl.NodeManagerUtils;
+import com.paviasystem.cloudfilesystem.components.DirectoryNodeItem.Type;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryBlobStore;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemorySeekableByteChannel;
 

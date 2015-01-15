@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.impl;
+package com.paviasystem.cloudfilesystem.components;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -7,10 +7,6 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-
-import com.paviasystem.cloudfilesystem.components.Blob;
-import com.paviasystem.cloudfilesystem.components.BlobStore;
-import com.paviasystem.cloudfilesystem.components.Utils;
 
 public class NodeCache implements BlobStore {
 

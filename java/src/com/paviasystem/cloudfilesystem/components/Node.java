@@ -1,4 +1,4 @@
-package com.paviasystem.cloudfilesystem.impl;
+package com.paviasystem.cloudfilesystem.components;
 
 public abstract class Node implements AutoCloseable {
 	public final long nodeNumber;
