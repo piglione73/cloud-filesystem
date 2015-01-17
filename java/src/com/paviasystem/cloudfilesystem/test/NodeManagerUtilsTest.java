@@ -2,6 +2,7 @@ package com.paviasystem.cloudfilesystem.test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -13,12 +14,13 @@ import org.junit.Test;
 import com.paviasystem.cloudfilesystem.components.Blob;
 import com.paviasystem.cloudfilesystem.components.DirectoryNode;
 import com.paviasystem.cloudfilesystem.components.DirectoryNodeItem;
+import com.paviasystem.cloudfilesystem.components.DirectoryNodeItem.Type;
 import com.paviasystem.cloudfilesystem.components.FileNode;
 import com.paviasystem.cloudfilesystem.components.LogEntry;
 import com.paviasystem.cloudfilesystem.components.NodeManagerUtils;
 import com.paviasystem.cloudfilesystem.components.Utils;
-import com.paviasystem.cloudfilesystem.components.DirectoryNodeItem.Type;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemoryBlobStore;
+import com.paviasystem.cloudfilesystem.referenceimpl.MemoryLog;
 import com.paviasystem.cloudfilesystem.referenceimpl.MemorySeekableByteChannel;
 
 public class NodeManagerUtilsTest {
@@ -26,23 +28,27 @@ public class NodeManagerUtilsTest {
 	public void test01_FileGetSet() throws Exception {
 		MemoryBlobStore bs1 = new MemoryBlobStore();
 		MemoryBlobStore bs2 = new MemoryBlobStore();
+		MemoryLog log = new MemoryLog();
 
-		NodeManagerUtils.setLatestFileNodeSnapshot(bs1, 1, new FileNode(1, Blob.from(10, "Node 1 - BS1")));
-		NodeManagerUtils.setLatestFileNodeSnapshot(bs2, 1, new FileNode(1, Blob.from(20, "Node 1 - BS2")));
+		NodeManagerUtils.setNode(bs1, 1, Blob.from(10, "Node 1 - BS1"), x -> x);
+		NodeManagerUtils.setNode(bs2, 1, Blob.from(20, "Node 1 - BS2"), x -> x);
 
-		FileNode node = NodeManagerUtils.getLatestFileNodeSnapshot(bs1, bs2, 1);
+		FileNode node = NodeManagerUtils.getNode(1, bs1, bs2, log, NodeManagerUtils::blobToFileNode, NodeManagerUtils::fileNodeToBlob, (logEntry, fileNode) -> {
+		});
 		assertEquals(1, node.nodeNumber);
 		assertEquals(10, node.blob.latestLogSequenceNumber);
 		assertEquals("Node 1 - BS1", node.blob.toString());
 
-		node = NodeManagerUtils.getLatestFileNodeSnapshot(bs2, bs1, 1);
+		node = NodeManagerUtils.getNode(1, bs2, bs1, log, NodeManagerUtils::blobToFileNode, NodeManagerUtils::fileNodeToBlob, (logEntry, fileNode) -> {
+		});
 		assertEquals(1, node.nodeNumber);
 		assertEquals(20, node.blob.latestLogSequenceNumber);
 		assertEquals("Node 1 - BS2", node.blob.toString());
 
-		NodeManagerUtils.setLatestFileNodeSnapshot(bs2, 1, null);
+		NodeManagerUtils.setNode(bs2, 1, (Blob) null, x -> x);
 
-		node = NodeManagerUtils.getLatestFileNodeSnapshot(bs2, bs1, 1);
+		node = NodeManagerUtils.getNode(1, bs2, bs1, log, NodeManagerUtils::blobToFileNode, NodeManagerUtils::fileNodeToBlob, (logEntry, fileNode) -> {
+		});
 		assertEquals(1, node.nodeNumber);
 		assertEquals(10, node.blob.latestLogSequenceNumber);
 		assertEquals("Node 1 - BS1", node.blob.toString());
@@ -50,64 +56,65 @@ public class NodeManagerUtilsTest {
 
 	@Test
 	public void test02_DirectoryGetSet() throws Exception {
-		MemoryBlobStore bs1 = new MemoryBlobStore();
-		MemoryBlobStore bs2 = new MemoryBlobStore();
-
-		TreeSet<DirectoryNodeItem> listing1 = new TreeSet<DirectoryNodeItem>();
-		listing1.add(new DirectoryNodeItem("Item 1", Type.FILE, 2));
-		listing1.add(new DirectoryNodeItem("Item 2", Type.DIRECTORY, 3));
-		listing1.add(new DirectoryNodeItem("Item 3", Type.FILE, 4));
-
-		TreeSet<DirectoryNodeItem> listing2 = new TreeSet<DirectoryNodeItem>();
-		listing2.add(new DirectoryNodeItem("Item 11", Type.FILE, 22));
-		listing2.add(new DirectoryNodeItem("Item 22", Type.DIRECTORY, 33));
-
-		NodeManagerUtils.setLatestDirectoryNodeSnapshot(bs1, 1, new DirectoryNode(1, 10, listing1));
-		NodeManagerUtils.setLatestDirectoryNodeSnapshot(bs2, 1, new DirectoryNode(1, 20, listing2));
-
-		DirectoryNode node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(bs1, bs2, 1);
-		assertEquals(1, node.nodeNumber);
-		assertEquals(10, node.latestLogSequenceNumber);
-		assertEquals(3, node.listing.size());
-		DirectoryNodeItem[] y = node.listing.toArray(new DirectoryNodeItem[3]);
-		assertEquals("Item 1", y[0].name);
-		assertEquals(2, y[0].nodeNumber);
-		assertEquals(Type.FILE, y[0].type);
-		assertEquals("Item 2", y[1].name);
-		assertEquals(3, y[1].nodeNumber);
-		assertEquals(Type.DIRECTORY, y[1].type);
-		assertEquals("Item 3", y[2].name);
-		assertEquals(4, y[2].nodeNumber);
-		assertEquals(Type.FILE, y[2].type);
-
-		node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(bs2, bs1, 1);
-		assertEquals(1, node.nodeNumber);
-		assertEquals(20, node.latestLogSequenceNumber);
-		assertEquals(2, node.listing.size());
-		y = node.listing.toArray(new DirectoryNodeItem[3]);
-		assertEquals("Item 11", y[0].name);
-		assertEquals(22, y[0].nodeNumber);
-		assertEquals(Type.FILE, y[0].type);
-		assertEquals("Item 22", y[1].name);
-		assertEquals(33, y[1].nodeNumber);
-		assertEquals(Type.DIRECTORY, y[1].type);
-
-		NodeManagerUtils.setLatestDirectoryNodeSnapshot(bs2, 1, null);
-
-		node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(bs2, bs1, 1);
-		assertEquals(1, node.nodeNumber);
-		assertEquals(10, node.latestLogSequenceNumber);
-		assertEquals(3, node.listing.size());
-		y = node.listing.toArray(new DirectoryNodeItem[3]);
-		assertEquals("Item 1", y[0].name);
-		assertEquals(2, y[0].nodeNumber);
-		assertEquals(Type.FILE, y[0].type);
-		assertEquals("Item 2", y[1].name);
-		assertEquals(3, y[1].nodeNumber);
-		assertEquals(Type.DIRECTORY, y[1].type);
-		assertEquals("Item 3", y[2].name);
-		assertEquals(4, y[2].nodeNumber);
-		assertEquals(Type.FILE, y[2].type);
+		fail("Test directoryNodeToBlob and blobToDirectoryNode");
+//		MemoryBlobStore bs1 = new MemoryBlobStore();
+//		MemoryBlobStore bs2 = new MemoryBlobStore();
+//
+//		TreeSet<DirectoryNodeItem> listing1 = new TreeSet<DirectoryNodeItem>();
+//		listing1.add(new DirectoryNodeItem("Item 1", Type.FILE, 2));
+//		listing1.add(new DirectoryNodeItem("Item 2", Type.DIRECTORY, 3));
+//		listing1.add(new DirectoryNodeItem("Item 3", Type.FILE, 4));
+//
+//		TreeSet<DirectoryNodeItem> listing2 = new TreeSet<DirectoryNodeItem>();
+//		listing2.add(new DirectoryNodeItem("Item 11", Type.FILE, 22));
+//		listing2.add(new DirectoryNodeItem("Item 22", Type.DIRECTORY, 33));
+//
+//		NodeManagerUtils.setLatestDirectoryNodeSnapshot(bs1, 1, new DirectoryNode(1, 10, listing1));
+//		NodeManagerUtils.setLatestDirectoryNodeSnapshot(bs2, 1, new DirectoryNode(1, 20, listing2));
+//
+//		DirectoryNode node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(bs1, bs2, 1);
+//		assertEquals(1, node.nodeNumber);
+//		assertEquals(10, node.latestLogSequenceNumber);
+//		assertEquals(3, node.listing.size());
+//		DirectoryNodeItem[] y = node.listing.toArray(new DirectoryNodeItem[3]);
+//		assertEquals("Item 1", y[0].name);
+//		assertEquals(2, y[0].nodeNumber);
+//		assertEquals(Type.FILE, y[0].type);
+//		assertEquals("Item 2", y[1].name);
+//		assertEquals(3, y[1].nodeNumber);
+//		assertEquals(Type.DIRECTORY, y[1].type);
+//		assertEquals("Item 3", y[2].name);
+//		assertEquals(4, y[2].nodeNumber);
+//		assertEquals(Type.FILE, y[2].type);
+//
+//		node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(bs2, bs1, 1);
+//		assertEquals(1, node.nodeNumber);
+//		assertEquals(20, node.latestLogSequenceNumber);
+//		assertEquals(2, node.listing.size());
+//		y = node.listing.toArray(new DirectoryNodeItem[3]);
+//		assertEquals("Item 11", y[0].name);
+//		assertEquals(22, y[0].nodeNumber);
+//		assertEquals(Type.FILE, y[0].type);
+//		assertEquals("Item 22", y[1].name);
+//		assertEquals(33, y[1].nodeNumber);
+//		assertEquals(Type.DIRECTORY, y[1].type);
+//
+//		NodeManagerUtils.setLatestDirectoryNodeSnapshot(bs2, 1, null);
+//
+//		node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(bs2, bs1, 1);
+//		assertEquals(1, node.nodeNumber);
+//		assertEquals(10, node.latestLogSequenceNumber);
+//		assertEquals(3, node.listing.size());
+//		y = node.listing.toArray(new DirectoryNodeItem[3]);
+//		assertEquals("Item 1", y[0].name);
+//		assertEquals(2, y[0].nodeNumber);
+//		assertEquals(Type.FILE, y[0].type);
+//		assertEquals("Item 2", y[1].name);
+//		assertEquals(3, y[1].nodeNumber);
+//		assertEquals(Type.DIRECTORY, y[1].type);
+//		assertEquals("Item 3", y[2].name);
+//		assertEquals(4, y[2].nodeNumber);
+//		assertEquals(Type.FILE, y[2].type);
 	}
 
 	@Test

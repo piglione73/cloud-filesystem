@@ -28,24 +28,11 @@ public class NodeManager {
 	 * @throws IOException
 	 */
 	public FileNode getFileNode(long nodeNumber) throws Exception {
-		// Get the latest node snapshot
-		FileNode node = NodeManagerUtils.getLatestFileNodeSnapshot(localCache, blobStore, nodeNumber);
+		return NodeManagerUtils.getNode(nodeNumber, localCache, blobStore, log, NodeManagerUtils::blobToFileNode, NodeManagerUtils::fileNodeToBlob, NodeManagerUtils::applyLogEntryToFileNode);
+	}
 
-		/*
-		 * Now, we know from what snapshot to start. Let's apply log records to
-		 * it in order to get the most up-to-date version of this node.
-		 */
-		Iterable<LogEntry> logEntries = log.read(nodeNumber, node.blob.latestLogSequenceNumber + 1);
-		for (LogEntry logEntry : logEntries)
-			NodeManagerUtils.applyLogEntryToFileNode(logEntry, node);
-
-		/*
-		 * Now that we have the most up-to-date snapshot, let's save it in cache
-		 */
-		NodeManagerUtils.setLatestFileNodeSnapshot(localCache, nodeNumber, node);
-
-		// Return the node
-		return node;
+	public void setFileNode(long nodeNumber, FileNode fileNode) throws Exception {
+		NodeManagerUtils.setNode(blobStore, nodeNumber, fileNode, NodeManagerUtils::fileNodeToBlob);
 	}
 
 	/**
@@ -57,24 +44,11 @@ public class NodeManager {
 	 * @throws Exception
 	 */
 	public DirectoryNode getDirectoryNode(long nodeNumber) throws Exception {
-		// Get the latest node snapshot
-		DirectoryNode node = NodeManagerUtils.getLatestDirectoryNodeSnapshot(localCache, blobStore, nodeNumber);
+		return NodeManagerUtils.getNode(nodeNumber, localCache, blobStore, log, NodeManagerUtils::blobToDirectoryNode, NodeManagerUtils::directoryNodeToBlob, NodeManagerUtils::applyLogEntryToDirectoryNode);
+	}
 
-		/*
-		 * Now, we know from what snapshot to start. Let's apply log records to
-		 * it in order to get the most up-to-date version of this node.
-		 */
-		Iterable<LogEntry> logEntries = log.read(nodeNumber, node.latestLogSequenceNumber + 1);
-		for (LogEntry logEntry : logEntries)
-			NodeManagerUtils.applyLogEntryToDirectoryNode(logEntry, node);
-
-		/*
-		 * Now that we have the most up-to-date snapshot, let's save it in cache
-		 */
-		NodeManagerUtils.setLatestDirectoryNodeSnapshot(localCache, nodeNumber, node);
-
-		// Return the node
-		return node;
+	public void setDirectoryNode(long nodeNumber, DirectoryNode dirNode) throws Exception {
+		NodeManagerUtils.setNode(blobStore, nodeNumber, dirNode, NodeManagerUtils::directoryNodeToBlob);
 	}
 
 	public DirectoryNode getDirectoryNode(String absolutePath) throws Exception {
