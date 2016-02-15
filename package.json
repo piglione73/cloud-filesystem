@@ -1,0 +1,23 @@
+{
+  "name": "cloud-filesystem",
+  "version": "1.0.0",
+  "description": "cloud-filesystem\r ================",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piglione73/cloud-filesystem.git"
+  },
+  "keywords": [
+    "cloud",
+    "filesystem"
+  ],
+  "author": "Roberto Rossi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/piglione73/cloud-filesystem/issues"
+  },
+  "homepage": "https://github.com/piglione73/cloud-filesystem#readme"
+}
