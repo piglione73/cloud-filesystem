@@ -19,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/piglione73/cloud-filesystem/issues"
   },
-  "homepage": "https://github.com/piglione73/cloud-filesystem#readme"
+  "homepage": "https://github.com/piglione73/cloud-filesystem#readme",
+  "dependencies": {
+    "randomstring": "^1.1.4"
+  }
 }
