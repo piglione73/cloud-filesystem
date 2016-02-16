@@ -5,10 +5,11 @@ var write = require("../src/low-level-writer.js");
 var Data = require("../src/low-level-data.js");
 var StoreBase = require("../src/store-base.js");
 var StoreAWS = require("../src/store-aws.js");
+var storeAWSConfig = require("./store-aws-config.json");
 
 
 describe("StoreBase", test(() => new StoreBase()));
-describe("StoreAWS", test(() => new StoreAWS()));
+describe("StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
 
 
 function test(storeSupplier) {

@@ -8,25 +8,20 @@ This is a store based on AWS S3 and DynamoDB.
 */
 class StoreAWS {
 
-	constructor(bucketName, bucketPrefix, tableName) {
-		if(!bucketName){
-			console.error("Missing bucket name in StoreAWS constructor");
-			return;
-		}
-		else if(!bucketPrefix){
-			console.error("Missing bucket prefix in StoreAWS constructor");
-			return;
-		}
-		else if(!tableName){
-			console.error("Missing table name in StoreAWS constructor");
+	constructor(bucketName, bucketRegion, bucketPrefix, tableName, tableRegion) {
+		if(!bucketName || !bucketRegion || !bucketPrefix || !tableName || !tableRegion){
+			console.error("Missing parameters in StoreAWS constructor");
 			return;
 		}
 			
 		this.bucketName = bucketName;
+		this.bucketRegion = bucketRegion;
 		this.bucketPrefix = bucketPrefix;
 		this.tableName = tableName;
+		this.tableRegion = tableRegion;
 
-		this.s3 = new AWS.S3();
+		this.s3 = new AWS.S3({ region: this.bucketRegion });
+		this.db = new AWS.DynamoDB({ region: this.tableRegion });
 	}
 	
     getBytes(key, callback) {
@@ -85,6 +80,99 @@ class StoreAWS {
 		}
     }
 	
+
+    getLogInfo(key, callback) {
+        /*
+        Gets the log info associated to a given key.
+
+        Calls callback(status, index, id).
+        */
+		var params = {
+			Key: { "key": { S: key } },
+			TableName: this.tableName,
+			ConsistentRead: true
+		};
+		this.db.getItem(params, function(err, data) {
+			if(err) {
+				//Something went wrong
+				callback(err);
+			}
+			else {
+				//Response received
+				if(data.Item)
+					callback(StoreBase.OK, parseInt(data.Item.index.N), data.Item.id.S);
+				else
+					callback(StoreBase.NotFound);
+			}
+		});
+    }
+
+    insertLogInfo(key, newIndex, newID, callback) {
+        /*
+        Consistently insert a log info when it does not exist for the given key.
+        The index is set to newIndex and the id is set to newID.
+
+        Calls callback(status).
+        */
+		var params = {
+			Item: { "#p1": { S: key }, "#p2": { N: newIndex.toString() }, "#p3": { S: newID } },
+			TableName: this.tableName,
+			ConditionExpression: "attribute_not_exists(#p1)",
+			ExpressionAttributeNames: {
+				"#p1": "key",
+				"#p2": "index",
+				"#p3": "id"
+			}
+		};
+		this.db.putItem(params, function(err, data) {
+			console.log(this);
+			if(err) {
+				console.log(err);
+				//Something went wrong
+				callback(err);
+			}
+			else {
+				//Response received
+				callback(StoreBase.OK);
+			}
+		});
+    }
+
+    updateLogInfo(key, existingIndex, newIndex, newID, callback) {
+        /*
+        Consistently updates the log info associated to a given key. The update is only performed 
+        if the index is equal to existingIndex. The index is set to newIndex and the id is set to newID.
+
+        Calls callback(status).
+        */
+		return;
+        this.getLogInfo(key, (status, index, id) => {
+            if (status == StoreBase.OK) {
+                //The log info exists
+                if (index == existingIndex) {
+                    //Index matches, so we can update
+                    this.logInfo[key] = {
+                        index: newIndex,
+                        id: newID
+                    };
+                    callback(StoreBase.OK);
+                }
+                else {
+                    //Index does not match
+                    callback(StoreBase.IndexDoesNotMatch);
+                }
+            }
+            else if (status == StoreBase.NotFound) {
+                //The log info does not exist, so we cannot update
+                callback(StoreBase.NotFound);
+            }
+            else {
+                //Other error
+                callback(status);
+            }
+        });
+    }
+
 }
 
 
