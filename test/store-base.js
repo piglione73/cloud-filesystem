@@ -32,7 +32,7 @@ function testStoreBytes(store) {
 
         store.getBytes("AAA", function(status, bytes) {
             assert.equal(status, StoreBase.OK);
-            assert.equal(bytes.equals(new Buffer("aaa")), true);
+            assert.ok(bytes.equals(new Buffer("aaa")));
         });
 
         store.setBytes("AAA", new Buffer("aaa2"), function(status) {
@@ -41,7 +41,7 @@ function testStoreBytes(store) {
 
         store.getBytes("AAA", function(status, bytes) {
             assert.equal(status, StoreBase.OK);
-            assert.equal(bytes.equals(new Buffer("aaa2")), true);
+            assert.ok(bytes.equals(new Buffer("aaa2")));
         });
 
         store.getBytes("BBB", function(status, bytes) {

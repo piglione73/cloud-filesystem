@@ -1,7 +1,8 @@
 "use strict";
 
 var randomstring = require("randomstring");
-var StoreBase = require("../src/store-base.js");
+var StoreBase = require("./store-base.js");
+var Data = require("./low-level-data.js");
 
 function write(store, key, bytes, callback) {
 	/*
@@ -22,7 +23,7 @@ function write(store, key, bytes, callback) {
 		return function(status, existingIndex, existingID) {
 			if(status == StoreBase.OK) {
 				//We have the existing log record info, so we must consistently update it
-				consistentUpdate(existingIndex);
+				consistentUpdate(existingIndex, existingID);
 			}
 			else if(status == StoreBase.NotFound) {
 				//No log record has been written for this key yet, so we must consistently insert a new one
@@ -35,6 +36,10 @@ function write(store, key, bytes, callback) {
 		};
 	}
 	
+	function getLogKey(index, id) {
+		return key + "|" + index + "|" + id;
+	}
+	
 	function consistentInsert() {
 		/*
 		In case we are in the "insert" scenario, we write a new log record with index 1.
@@ -43,15 +48,15 @@ function write(store, key, bytes, callback) {
 		step1();
 		
 		function step1() {
-			store.setBytes(key, bytes, step2());
+			var newID = randomstring.generate(10);
+			var newIndex = 1;
+			store.setBytes(getLogKey(newIndex, newID), new Data(bytes).toBuffer(), step2(newIndex, newID));
 		}
 		
-		function step2() {
+		function step2(newIndex, newID) {
 			return function(status) {
 				if(status == StoreBase.OK) {
 					//Bytes written, now write the log record, hoping nobody else has written a log record meanwhile
-					var newID = randomstring.generate(10);
-					var newIndex = 1;
 					store.insertLogInfo(key, newIndex, newID, step3());
 				}
 				else {
@@ -79,7 +84,7 @@ function write(store, key, bytes, callback) {
 		}
 	}
 	
-	function consistentUpdate(existingIndex) {
+	function consistentUpdate(existingIndex, existingID) {
 		/*
 		In case we are in the "update" scenario, we write a new log record with index existingIndex + 1.
 		First the bytes, then the record.
@@ -87,15 +92,15 @@ function write(store, key, bytes, callback) {
 		step1();
 		
 		function step1() {
-			store.setBytes(key, bytes, step2());
+			var newID = randomstring.generate(10);
+			var newIndex = existingIndex + 1;
+			store.setBytes(getLogKey(newIndex, newID), new Data(bytes, existingIndex, existingID).toBuffer(), step2(newIndex, newID));
 		}
 		
-		function step2() {
+		function step2(newIndex, newID) {
 			return function(status) {
 				if(status == StoreBase.OK) {
 					//Bytes written, now write the log record, hoping nobody else has written a log record meanwhile
-					var newID = randomstring.generate(10);
-					var newIndex = existingIndex + 1;
 					store.updateLogInfo(key, existingIndex, newIndex, newID, step3());
 				}
 				else {
