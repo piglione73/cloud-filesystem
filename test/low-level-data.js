@@ -9,8 +9,8 @@ describe("LowLevelData", function() {
 		var serialized = d.toBuffer();
 		var deserialized = Data.fromBuffer(serialized);
 		
-		assert.equal(deserialized.previousLogIndex, 57);
-		assert.equal(deserialized.previousLogID, "ABC");
+		assert.strictEqual(deserialized.previousLogIndex, 57);
+		assert.strictEqual(deserialized.previousLogID, "ABC");
 		assert.ok(deserialized.bytes.equals(new Buffer("Hello")));
 	});
 
@@ -19,8 +19,8 @@ describe("LowLevelData", function() {
 		var serialized = d.toBuffer();
 		var deserialized = Data.fromBuffer(serialized);
 		
-		assert.equal(deserialized.previousLogIndex, null);
-		assert.equal(deserialized.previousLogID, null);
+		assert.strictEqual(deserialized.previousLogIndex, null);
+		assert.strictEqual(deserialized.previousLogID, null);
 		assert.ok(deserialized.bytes.equals(new Buffer("Hello")));
 	});
 });
