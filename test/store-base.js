@@ -1,14 +1,26 @@
 "use strict";
 
 var assert = require("assert");
-var StoreBase = require("../src/store-base");
+var StoreBase = require("../src/store-base.js");
+var StoreAWS = require("../src/store-aws.js");
 
 
-describe("StoreBase", function() {
+describe("StoreBase", test(() => new StoreBase()));
+describe("StoreAWS", test(() => new StoreAWS()));
 
+
+function test(storeSupplier) {
+	return function() {
+		var store = storeSupplier();
+		testStoreBytes(store);
+		
+		store = storeSupplier();
+		testLog(store);
+	};
+}
+
+function testStoreBytes(store) {
     it("must store bytes", function() {
-        var store = new StoreBase();
-
         store.getBytes("AAA", function(status, bytes) {
             assert.equal(status, StoreBase.NotFound);
             assert.equal(bytes, undefined);
@@ -37,10 +49,10 @@ describe("StoreBase", function() {
             assert.equal(bytes, undefined);
         });
     });
+}
 
+function testLog(store) {
     it("must handle log info consistently", function() {
-        var store = new StoreBase();
-
         store.getLogInfo("AAA", function(status, index, id) {
             assert.equal(status, StoreBase.NotFound);
             assert.equal(index, undefined);
@@ -73,4 +85,6 @@ describe("StoreBase", function() {
             assert.equal(id, "CDE");
         });
     });
-});
+}
+
+

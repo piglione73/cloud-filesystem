@@ -75,17 +75,17 @@ class StoreBase {
         });
     }
 
-    updateLogInfo(key, currentIndex, newIndex, newID, callback) {
+    updateLogInfo(key, existingIndex, newIndex, newID, callback) {
         /*
         Consistently updates the log info associated to a given key. The update is only performed 
-        if the index is equal to currentIndex. The index is set to newIndex and the id is set to newID.
+        if the index is equal to existingIndex. The index is set to newIndex and the id is set to newID.
 
         Calls callback(status).
         */
         this.getLogInfo(key, (status, index, id) => {
             if (status == StoreBase.OK) {
                 //The log info exists
-                if (index == currentIndex) {
+                if (index == existingIndex) {
                     //Index matches, so we can update
                     this.logInfo[key] = {
                         index: newIndex,

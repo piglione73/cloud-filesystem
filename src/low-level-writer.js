@@ -1,23 +1,129 @@
 "use strict";
 
 var randomstring = require("randomstring");
+var StoreBase = require("../src/store-base.js");
 
 function write(store, key, bytes, callback) {
 	/*
-	Write a new log record, ensuring consistency. No two simultaneous writes must conflict or be lost. They must be consistently and reliably
-	serialized.
-
-	Step 1: Get the highest log record index (L) ever written for this key, with its associated random id (R). This becomes our "previous log record".
+	Write a new log record, ensuring consistency. No two simultaneous writes must conflict or be lost. 
+	They must be consistently and reliably serialized.
 	*/
-	var previousLogRec = store.getHighestLogRecord(key);
+	start();
+	
+	function start() {
+		/*
+		Get the highest log record index ever written for this key, with its associated random id. 
+		This becomes our "existing log record".
+		*/
+		store.getLogInfo(key, onLogInfoReceived());
+	}
 
-	//Step 2: prepare the new log record index (L2) and id (R2)
-	var L2 = L + 1;
-	var R2 = randomstring.generate(10);
-
-	//Step 3: write the bytes into the store
-	store.writeBytes(key + "|" + L2 + "|" + R2, bytes);
-
-	//Step 4: consistently update the highest log record index
-	store.setHighestLogRecordIndex(key, L, L2, R2);
+	function onLogInfoReceived() {
+		return function(status, existingIndex, existingID) {
+			if(status == StoreBase.OK) {
+				//We have the existing log record info, so we must consistently update it
+				consistentUpdate(existingIndex);
+			}
+			else if(status == StoreBase.NotFound) {
+				//No log record has been written for this key yet, so we must consistently insert a new one
+				consistentInsert();				
+			}
+			else {
+				//Other error
+				callback(status);
+			}			
+		};
+	}
+	
+	function consistentInsert() {
+		/*
+		In case we are in the "insert" scenario, we write a new log record with index 1.
+		First the bytes, then the record.
+		*/
+		step1();
+		
+		function step1() {
+			store.setBytes(key, bytes, step2());
+		}
+		
+		function step2() {
+			return function(status) {
+				if(status == StoreBase.OK) {
+					//Bytes written, now write the log record, hoping nobody else has written a log record meanwhile
+					var newID = randomstring.generate(10);
+					var newIndex = 1;
+					store.insertLogInfo(key, newIndex, newID, step3());
+				}
+				else {
+					//Other error
+					callback(status);
+				}
+			};
+		}
+		
+		function step3() {
+			return function(status) {
+				if(status == StoreBase.OK) {
+					//Log written, we are done
+					callback(StoreBase.OK);
+				}
+				else if(status == StoreBase.AlreadyPresent) {
+					//Someone wrote a new log record meanwhile, so we have to retry the whole process
+					start();
+				}
+				else {
+					//Other error
+					callback(status);
+				}
+			};
+		}
+	}
+	
+	function consistentUpdate(existingIndex) {
+		/*
+		In case we are in the "update" scenario, we write a new log record with index existingIndex + 1.
+		First the bytes, then the record.
+		*/
+		step1();
+		
+		function step1() {
+			store.setBytes(key, bytes, step2());
+		}
+		
+		function step2() {
+			return function(status) {
+				if(status == StoreBase.OK) {
+					//Bytes written, now write the log record, hoping nobody else has written a log record meanwhile
+					var newID = randomstring.generate(10);
+					var newIndex = existingIndex + 1;
+					store.updateLogInfo(key, existingIndex, newIndex, newID, step3());
+				}
+				else {
+					//Other error
+					callback(status);
+				}
+			};
+		}
+		
+		function step3() {
+			return function(status) {
+				if(status == StoreBase.OK) {
+					//Log written, we are done
+					callback(StoreBase.OK);
+				}
+				else if(status == StoreBase.AlreadyPresent) {
+					//Someone wrote a new log record meanwhile, so we have to retry the whole process
+					start();
+				}
+				else {
+					//Other error
+					callback(status);
+				}
+			};
+		}
+	}
+	
 }
+
+module.exports = write;
+
