@@ -30,7 +30,11 @@ class StoreBase {
 
         The callback is called as callback(status).
         */
-        this.store[key] = bytes;
+		if(bytes)
+			this.store[key] = bytes;
+		else
+			delete this.store[key];
+			
         callback(StoreBase.OK);
     }
 
