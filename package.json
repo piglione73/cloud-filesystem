@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/piglione73/cloud-filesystem#readme",
   "dependencies": {
+    "aws-sdk": "^2.2.35",
     "randomstring": "^1.1.4"
   }
 }
