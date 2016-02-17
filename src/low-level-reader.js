@@ -35,9 +35,9 @@ function read(store, key, callback) {
 		};
 	}
 	
-	function startReadLog(base) {
+	function startReadLog(base, lowestIndex, lowestID) {
 		//First, read the maximum log record
-		store.getLogInfo(key, onLogInfoReceived(base));
+		store.getLogInfo(key, onLogInfoReceived(base, lowestIndex, lowestID));
 	}
 	
 	function onLogInfoReceived(base, lowestIndex, lowestID) {

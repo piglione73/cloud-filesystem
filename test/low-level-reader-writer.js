@@ -2,6 +2,7 @@
 
 var assert = require("assert");
 var write = require("../src/low-level-writer.js");
+var read = require("../src/low-level-reader.js");
 var Data = require("../src/low-level-data.js");
 var StoreBase = require("../src/store-base.js");
 var StoreAWS = require("../src/store-aws.js");
@@ -16,6 +17,9 @@ function test(storeSupplier) {
 	return function() {
 		var store = storeSupplier();
 		testWriteConsistently(store);
+
+		store = storeSupplier();
+		testReadConsistently(store);
 	};
 }
 
@@ -70,4 +74,60 @@ function testWriteConsistently(store) {
 			});
 		});
     });
+}
+
+function testReadConsistently(store) {
+    it("must read consistently", function(done) {
+		this.timeout(20000);
+		
+		//Clean all
+		store.setBytes("AAA", null, function(status) {
+			assert.equal(status, StoreBase.OK);
+			store.cleanLogInfo("AAA", function(status) {
+				assert.equal(status, StoreBase.OK);
+				
+				//Read nothing
+				read(store, "AAA", function(status, data) {
+					assert.equal(status, StoreBase.OK);
+					assert.equal(data.base, null);
+					assert.equal(data.logRecs.length, 0);
+					
+					//Now let's setup some base, saying that log records have been incorporated up to index 3
+					var base = new Data(new Buffer("Hello"), 3, "ABCDEFGHJK");
+					store.setBytes("AAA", base.toBuffer(), function(status) {
+						assert.equal(status, StoreBase.OK);
+						
+						//If we read back, we will only find the base
+						read(store, "AAA", function(status, data) {
+							assert.equal(status, StoreBase.OK);
+							assert.ok(data.base.equals(new Buffer("Hello")));
+							assert.equal(data.logRecs.length, 0);
+							
+							//Now write 5 log records
+							write(store, "AAA", new Buffer("Log 1"), function(status) {
+								write(store, "AAA", new Buffer("Log 2"), function(status) {
+									write(store, "AAA", new Buffer("Log 3"), function(status) {
+										write(store, "AAA", new Buffer("Log 4"), function(status) {
+											write(store, "AAA", new Buffer("Log 5"), function(status) {
+												//Now read back, we must find the base and two log records (4 and 5)
+												read(store, "AAA", function(status, data) {
+													assert.equal(status, StoreBase.OK);
+													assert.ok(data.base.equals(new Buffer("Hello")));
+													assert.equal(data.logRecs.length, 2);
+													assert.ok(data.logRecs[0].equals(new Buffer("Log 4")));
+													assert.ok(data.logRecs[1].equals(new Buffer("Log 5")));
+													
+													done();
+												});
+											});
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
+		});
+	});
 }
