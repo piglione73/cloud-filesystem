@@ -48,16 +48,16 @@ function testWriteConsistently(store) {
 								store.getBytes("AAA|" + index1 + "|" + id1, function(status, bytes) {
 									assert.equal(status, StoreBase.OK);
 									var data = Data.fromBuffer(bytes);
-									assert.strictEqual(data.previousLogIndex, null);
-									assert.strictEqual(data.previousLogID, null);
+									assert.strictEqual(data.index, null);
+									assert.strictEqual(data.id, null);
 									assert.ok(data.bytes.equals(new Buffer("Hello")));
 									
 									store.getBytes("AAA|" + index2 + "|" + id2, function(status, bytes) {
 										assert.equal(status, StoreBase.OK);
 										var data = Data.fromBuffer(bytes);
 										
-										assert.strictEqual(data.previousLogIndex, index1);
-										assert.strictEqual(data.previousLogID, id1);
+										assert.strictEqual(data.index, index1);
+										assert.strictEqual(data.id, id1);
 										assert.ok(data.bytes.equals(new Buffer("Hello 2")));
 										
 										done();

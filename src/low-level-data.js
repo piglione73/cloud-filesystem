@@ -5,17 +5,17 @@ var OFFSET_ID = 16;
 var OFFSET_BYTES = 64;
 
 class Data {
-	constructor(bytes, previousLogIndex, previousLogID) {
+	constructor(bytes, index, id) {
 		this.bytes = bytes;
-		this.previousLogIndex = previousLogIndex;
-		this.previousLogID = previousLogID;
+		this.index = index;
+		this.id = id;
 	}
 	
 	toBuffer() {
 		var buf = new Buffer(this.bytes.length + OFFSET_BYTES);
 		buf.fill(0, OFFSET_INDEX, OFFSET_BYTES);
-		var logInd = this.previousLogIndex !== null && this.previousLogIndex !== undefined? this.previousLogIndex.toString() : "";
-		var logID = this.previousLogID || "";
+		var logInd = this.index !== null && this.index !== undefined? this.index.toString() : "";
+		var logID = this.id || "";
 		buf.write(logInd, OFFSET_INDEX);
 		buf.write(logID, OFFSET_ID);
 		this.bytes.copy(buf, OFFSET_BYTES);
