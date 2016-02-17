@@ -3,7 +3,7 @@
 var assert = require("assert");
 var Data = require("../src/low-level-data.js");
 
-describe("LowLevelData", function() {
+describe("Low-level data", function() {
 	it("must serialize/deserialize", function() {
 		var d = new Data(new Buffer("Hello"), 57, "ABC");
 		var serialized = d.toBuffer();

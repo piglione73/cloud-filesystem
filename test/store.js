@@ -5,8 +5,8 @@ var StoreBase = require("../src/store-base.js");
 var StoreAWS = require("../src/store-aws.js");
 var storeAWSConfig = require("./store-aws-config.json");
 
-describe("StoreBase", test(() => new StoreBase()));
-describe("StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
+describe("Data store: StoreBase", test(() => new StoreBase()));
+describe("Data store: StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
 
 
 function test(storeSupplier) {
@@ -21,6 +21,8 @@ function test(storeSupplier) {
 
 function testStoreBytes(store) {
     it("must store bytes", function(done) {
+		this.timeout(10000);
+		
 		store.setBytes("AAA", null, function(status) {
 			assert.equal(status, StoreBase.OK);
 			store.setBytes("BBB", null, function(status) {
@@ -62,39 +64,45 @@ function testStoreBytes(store) {
 
 function testLog(store) {
     it("must handle log info consistently", function(done) {
-        store.getLogInfo("AAA", function(status, index, id) {
-            assert.equal(status, StoreBase.NotFound);
-            assert.equal(index, undefined);
-            assert.equal(id, undefined);
+		this.timeout(10000);
+		
+		store.cleanLogInfo("AAA", function(status) {
+            assert.equal(status, StoreBase.OK);
+		
+			store.getLogInfo("AAA", function(status, index, id) {
+				assert.equal(status, StoreBase.NotFound);
+				assert.equal(index, undefined);
+				assert.equal(id, undefined);
 
-			store.updateLogInfo("AAA", 0, 1, "ABC", function(status) {
-				assert.equal(status.NotFound);
-
-				store.insertLogInfo("AAA", 1, "ABC", function(status) {
-					assert.equal(status, StoreBase.OK);
+				store.updateLogInfo("AAA", 0, 1, "ABC", function(status) {
+					assert.equal(status, StoreBase.NotFoundOrIndexDoesNotMatch);
 
 					store.insertLogInfo("AAA", 1, "ABC", function(status) {
-						assert.equal(status, StoreBase.AlreadyPresent);
+						assert.equal(status, StoreBase.OK);
 
-						store.updateLogInfo("AAA", 0, 1, "ABC", function(status) {
-							assert.equal(status, StoreBase.IndexDoesNotMatch);
+						store.insertLogInfo("AAA", 1, "ABC", function(status) {
+							assert.equal(status, StoreBase.AlreadyPresent);
 
-							store.updateLogInfo("AAA", 1, 2, "CDE", function(status) {
-								assert.equal(status, StoreBase.OK);
+							store.updateLogInfo("AAA", 0, 1, "ABC", function(status) {
+								assert.equal(status, StoreBase.NotFoundOrIndexDoesNotMatch);
 
-								store.getLogInfo("AAA", function(status, index, id) {
+								store.updateLogInfo("AAA", 1, 2, "CDE", function(status) {
 									assert.equal(status, StoreBase.OK);
-									assert.equal(index, 2);
-									assert.equal(id, "CDE");
-									
-									done();
+
+									store.getLogInfo("AAA", function(status, index, id) {
+										assert.equal(status, StoreBase.OK);
+										assert.equal(index, 2);
+										assert.equal(id, "CDE");
+										
+										done();
+									});
 								});
 							});
 						});
 					});
 				});
 			});
-        });
+		});
     });
 }
 

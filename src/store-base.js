@@ -38,6 +38,16 @@ class StoreBase {
         callback(StoreBase.OK);
     }
 
+    cleanLogInfo(key, callback) {
+        /*
+        Removes the log info associated to a given key.
+
+        Calls callback(status).
+        */
+		delete this.logInfo[key];
+        callback(StoreBase.OK);
+    }
+
     getLogInfo(key, callback) {
         /*
         Gets the log info associated to a given key.
@@ -99,12 +109,12 @@ class StoreBase {
                 }
                 else {
                     //Index does not match
-                    callback(StoreBase.IndexDoesNotMatch);
+                    callback(StoreBase.NotFoundOrIndexDoesNotMatch);
                 }
             }
             else if (status == StoreBase.NotFound) {
                 //The log info does not exist, so we cannot update
-                callback(StoreBase.NotFound);
+                callback(StoreBase.NotFoundOrIndexDoesNotMatch);
             }
             else {
                 //Other error
@@ -118,7 +128,7 @@ class StoreBase {
 StoreBase.OK = 0;
 StoreBase.NotFound = 1;
 StoreBase.AlreadyPresent = 2;
-StoreBase.IndexDoesNotMatch = 3;
+StoreBase.NotFoundOrIndexDoesNotMatch = 3;
 
 
 module.exports = StoreBase;

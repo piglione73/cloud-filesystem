@@ -81,6 +81,29 @@ class StoreAWS {
     }
 	
 
+    cleanLogInfo(key, callback) {
+        /*
+        Removes the log info associated to a given key.
+
+        Calls callback(status).
+        */
+		var params = {
+			Key: { "key": { S: key } },
+			TableName: this.tableName
+		};
+		this.db.deleteItem(params, function(err, data) {
+			if(err) {
+				//Something went wrong
+				callback(err);
+			}
+			else {
+				//Response received
+				callback(StoreBase.OK);
+			}
+		});
+    }
+
+
     getLogInfo(key, callback) {
         /*
         Gets the log info associated to a given key.
@@ -115,21 +138,20 @@ class StoreAWS {
         Calls callback(status).
         */
 		var params = {
-			Item: { "#p1": { S: key }, "#p2": { N: newIndex.toString() }, "#p3": { S: newID } },
+			Item: { "key": { S: key }, "index": { N: newIndex.toString() }, "id": { S: newID } },
 			TableName: this.tableName,
 			ConditionExpression: "attribute_not_exists(#p1)",
 			ExpressionAttributeNames: {
-				"#p1": "key",
-				"#p2": "index",
-				"#p3": "id"
+				"#p1": "key"
 			}
 		};
 		this.db.putItem(params, function(err, data) {
-			console.log(this);
 			if(err) {
-				console.log(err);
 				//Something went wrong
-				callback(err);
+				if(err.code == "ConditionalCheckFailedException")
+					callback(StoreBase.AlreadyPresent);
+				else
+					callback(err);
 			}
 			else {
 				//Response received
@@ -145,32 +167,32 @@ class StoreAWS {
 
         Calls callback(status).
         */
-		return;
-        this.getLogInfo(key, (status, index, id) => {
-            if (status == StoreBase.OK) {
-                //The log info exists
-                if (index == existingIndex) {
-                    //Index matches, so we can update
-                    this.logInfo[key] = {
-                        index: newIndex,
-                        id: newID
-                    };
-                    callback(StoreBase.OK);
-                }
-                else {
-                    //Index does not match
-                    callback(StoreBase.IndexDoesNotMatch);
-                }
-            }
-            else if (status == StoreBase.NotFound) {
-                //The log info does not exist, so we cannot update
-                callback(StoreBase.NotFound);
-            }
-            else {
-                //Other error
-                callback(status);
-            }
-        });
+		var params = {
+			Item: { "key": { S: key }, "index": { N: newIndex.toString() }, "id": { S: newID } },
+			TableName: this.tableName,
+			ConditionExpression: "attribute_exists(#p1) and #p2=:ndx",
+			ExpressionAttributeNames: {
+				"#p1": "key",
+				"#p2": "index"
+			},
+			ExpressionAttributeValues: {
+				":ndx": { N: existingIndex.toString() }
+			},
+			ReturnValues: "ALL_OLD"
+		};
+		this.db.putItem(params, function(err, data) {
+			if(err) {
+				//Something went wrong
+				if(err.code == "ConditionalCheckFailedException")
+					callback(StoreBase.NotFoundOrIndexDoesNotMatch);
+				else
+					callback(err);
+			}
+			else {
+				//Response received
+				callback(StoreBase.OK);
+			}
+		});
     }
 
 }
