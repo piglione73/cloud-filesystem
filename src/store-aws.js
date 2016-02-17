@@ -1,7 +1,7 @@
 "use strict";
 
 var AWS = require("aws-sdk"); 
-var StoreBase = require("./store-base.js");
+var RetCodes = require("./return-codes.js");
 
 /*
 This is a store based on AWS S3 and DynamoDB.
@@ -35,13 +35,13 @@ class StoreAWS {
 			if(err) {
 				//Something went wrong
 				if(err.code == "NoSuchKey")
-					callback(StoreBase.NotFound);
+					callback(RetCodes.NotFound);
 				else
 					callback(err);
 			}
 			else {
 				//Response received
-				callback(StoreBase.OK, data.Body);
+				callback(RetCodes.OK, data.Body);
 			}
 		});
     }
@@ -61,7 +61,7 @@ class StoreAWS {
 				}
 				else {
 					//Response received
-					callback(StoreBase.OK);
+					callback(RetCodes.OK);
 				}
 			});
 		}
@@ -74,7 +74,7 @@ class StoreAWS {
 				}
 				else {
 					//Response received
-					callback(StoreBase.OK);
+					callback(RetCodes.OK);
 				}
 			});
 		}
@@ -98,7 +98,7 @@ class StoreAWS {
 			}
 			else {
 				//Response received
-				callback(StoreBase.OK);
+				callback(RetCodes.OK);
 			}
 		});
     }
@@ -123,9 +123,9 @@ class StoreAWS {
 			else {
 				//Response received
 				if(data.Item)
-					callback(StoreBase.OK, parseInt(data.Item.index.N), data.Item.id.S);
+					callback(RetCodes.OK, parseInt(data.Item.index.N), data.Item.id.S);
 				else
-					callback(StoreBase.NotFound);
+					callback(RetCodes.NotFound);
 			}
 		});
     }
@@ -149,13 +149,13 @@ class StoreAWS {
 			if(err) {
 				//Something went wrong
 				if(err.code == "ConditionalCheckFailedException")
-					callback(StoreBase.AlreadyPresent);
+					callback(RetCodes.AlreadyPresent);
 				else
 					callback(err);
 			}
 			else {
 				//Response received
-				callback(StoreBase.OK);
+				callback(RetCodes.OK);
 			}
 		});
     }
@@ -184,13 +184,13 @@ class StoreAWS {
 			if(err) {
 				//Something went wrong
 				if(err.code == "ConditionalCheckFailedException")
-					callback(StoreBase.NotFoundOrIndexDoesNotMatch);
+					callback(RetCodes.NotFoundOrIndexDoesNotMatch);
 				else
 					callback(err);
 			}
 			else {
 				//Response received
-				callback(StoreBase.OK);
+				callback(RetCodes.OK);
 			}
 		});
     }

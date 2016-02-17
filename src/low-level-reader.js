@@ -2,6 +2,7 @@
 
 var StoreBase = require("./store-base.js");
 var Data = require("./low-level-data.js");
+var RetCodes = require("./return-codes.js");
 
 function read(store, key, callback) {
 	/*
@@ -19,12 +20,12 @@ function read(store, key, callback) {
 	
 	function onBaseReceived() {
 		return function(status, buffer) {
-			if(status == StoreBase.OK) {
+			if(status == RetCodes.OK) {
 				//Base found, deserialize and proceed with log
 				var data = Data.fromBuffer(buffer);
 				startReadLog(data.bytes, data.index, data.id);
 			}
-			else if(status == StoreBase.NotFound) {
+			else if(status == RetCodes.NotFound) {
 				//Base not found, proceed with log
 				startReadLog(null, null, null);
 			}
@@ -42,11 +43,11 @@ function read(store, key, callback) {
 	
 	function onLogInfoReceived(base, lowestIndex, lowestID) {
 		return function(status, highestIndex, highestID) {
-			if(status == StoreBase.NotFound) {
+			if(status == RetCodes.NotFound) {
 				//No log record ever written, so we are finished
-				callback(StoreBase.OK, { base: base, logRecs: [] });
+				callback(RetCodes.OK, { base: base, logRecs: [] });
 			}
-			else if(status == StoreBase.OK) {
+			else if(status == RetCodes.OK) {
 				//At least one log record found. We must read from lowestIndex (excluded) to highestIndex (included)
 				//Due to eventual consistency issues, those log records might not be visible yet in the store.
 				//However, we are 100% sure they eventually be visible, so we wait until we manage to read them all.
@@ -64,18 +65,18 @@ function read(store, key, callback) {
 		//Stop condition
 		if(index == stopIndex) {
 			//We read all the interesting log records. We are done.
-			callback(StoreBase.OK, { base: base, logRecs: accumulatedLogRecs });
+			callback(RetCodes.OK, { base: base, logRecs: accumulatedLogRecs });
 			return;
 		}
 		
 		//Let's try hard to read the key/index/id log record, then we move to the previous
 		store.getBytes(getLogKey(index, id), function(status, buffer) {
-			if(status == StoreBase.NotFound) {
+			if(status == RetCodes.NotFound) {
 				//Not **YET** found. Try again.
 				readLogRecord(base, index, id, stopIndex, accumulatedLogRecs);
 				return;
 			}
-			else if(status == StoreBase.OK) {
+			else if(status == RetCodes.OK) {
 				//Found. Deserialize and accumulate.
 				var data = Data.fromBuffer(buffer);
 				var previousIndex = data.index;

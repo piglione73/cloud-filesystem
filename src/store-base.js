@@ -1,5 +1,6 @@
 "use strict";
 
+var RetCodes = require("./return-codes.js");
 
 /*
 This is the reference implementation of the underlying store. It stores bytes and log information in memory.
@@ -19,9 +20,9 @@ class StoreBase {
         */
         var bytes = this.store[key];
         if (bytes)
-            callback(StoreBase.OK, bytes);
+            callback(RetCodes.OK, bytes);
         else
-            callback(StoreBase.NotFound);
+            callback(RetCodes.NotFound);
     }
 
     setBytes(key, bytes, callback) {
@@ -35,7 +36,7 @@ class StoreBase {
 		else
 			delete this.store[key];
 			
-        callback(StoreBase.OK);
+        callback(RetCodes.OK);
     }
 
     cleanLogInfo(key, callback) {
@@ -45,7 +46,7 @@ class StoreBase {
         Calls callback(status).
         */
 		delete this.logInfo[key];
-        callback(StoreBase.OK);
+        callback(RetCodes.OK);
     }
 
     getLogInfo(key, callback) {
@@ -56,9 +57,9 @@ class StoreBase {
         */
         var info = this.logInfo[key];
         if (info)
-            callback(StoreBase.OK, info.index, info.id);
+            callback(RetCodes.OK, info.index, info.id);
         else
-            callback(StoreBase.NotFound);
+            callback(RetCodes.NotFound);
     }
 
     insertLogInfo(key, newIndex, newID, callback) {
@@ -69,18 +70,18 @@ class StoreBase {
         Calls callback(status).
         */
         this.getLogInfo(key, (status, index, id) => {
-            if (status == StoreBase.OK) {
+            if (status == RetCodes.OK) {
                 //The log info exists, so we cannot insert
-                callback(StoreBase.AlreadyPresent);
+                callback(RetCodes.AlreadyPresent);
             }
-            else if (status == StoreBase.NotFound) {
+            else if (status == RetCodes.NotFound) {
                 //The log info does not exist, so we can insert
                 this.logInfo[key] = {
                     index: newIndex,
                     id: newID
                 };
 
-                callback(StoreBase.OK);
+                callback(RetCodes.OK);
             }
             else {
                 //Other error
@@ -97,7 +98,7 @@ class StoreBase {
         Calls callback(status).
         */
         this.getLogInfo(key, (status, index, id) => {
-            if (status == StoreBase.OK) {
+            if (status == RetCodes.OK) {
                 //The log info exists
                 if (index == existingIndex) {
                     //Index matches, so we can update
@@ -105,16 +106,16 @@ class StoreBase {
                         index: newIndex,
                         id: newID
                     };
-                    callback(StoreBase.OK);
+                    callback(RetCodes.OK);
                 }
                 else {
                     //Index does not match
-                    callback(StoreBase.NotFoundOrIndexDoesNotMatch);
+                    callback(RetCodes.NotFoundOrIndexDoesNotMatch);
                 }
             }
-            else if (status == StoreBase.NotFound) {
+            else if (status == RetCodes.NotFound) {
                 //The log info does not exist, so we cannot update
-                callback(StoreBase.NotFoundOrIndexDoesNotMatch);
+                callback(RetCodes.NotFoundOrIndexDoesNotMatch);
             }
             else {
                 //Other error
@@ -123,12 +124,6 @@ class StoreBase {
         });
     }
 }
-
-
-StoreBase.OK = 0;
-StoreBase.NotFound = 1;
-StoreBase.AlreadyPresent = 2;
-StoreBase.NotFoundOrIndexDoesNotMatch = 3;
 
 
 module.exports = StoreBase;

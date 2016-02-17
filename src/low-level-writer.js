@@ -3,6 +3,7 @@
 var randomstring = require("randomstring");
 var StoreBase = require("./store-base.js");
 var Data = require("./low-level-data.js");
+var RetCodes = require("./return-codes.js");
 
 function write(store, key, bytes, callback) {
 	/*
@@ -21,11 +22,11 @@ function write(store, key, bytes, callback) {
 
 	function onLogInfoReceived() {
 		return function(status, existingIndex, existingID) {
-			if(status == StoreBase.OK) {
+			if(status == RetCodes.OK) {
 				//We have the existing log record info, so we must consistently update it
 				consistentUpdate(existingIndex, existingID);
 			}
-			else if(status == StoreBase.NotFound) {
+			else if(status == RetCodes.NotFound) {
 				//No log record has been written for this key yet, so we must consistently insert a new one
 				consistentInsert();				
 			}
@@ -55,7 +56,7 @@ function write(store, key, bytes, callback) {
 		
 		function step2(newIndex, newID) {
 			return function(status) {
-				if(status == StoreBase.OK) {
+				if(status == RetCodes.OK) {
 					//Bytes written, now write the log record, hoping nobody else has written a log record meanwhile
 					store.insertLogInfo(key, newIndex, newID, step3());
 				}
@@ -68,11 +69,11 @@ function write(store, key, bytes, callback) {
 		
 		function step3() {
 			return function(status) {
-				if(status == StoreBase.OK) {
+				if(status == RetCodes.OK) {
 					//Log written, we are done
-					callback(StoreBase.OK);
+					callback(RetCodes.OK);
 				}
-				else if(status == StoreBase.AlreadyPresent) {
+				else if(status == RetCodes.AlreadyPresent) {
 					//Someone wrote a new log record meanwhile, so we have to retry the whole process
 					start();
 				}
@@ -99,7 +100,7 @@ function write(store, key, bytes, callback) {
 		
 		function step2(newIndex, newID) {
 			return function(status) {
-				if(status == StoreBase.OK) {
+				if(status == RetCodes.OK) {
 					//Bytes written, now write the log record, hoping nobody else has written a log record meanwhile
 					store.updateLogInfo(key, existingIndex, newIndex, newID, step3());
 				}
@@ -112,11 +113,11 @@ function write(store, key, bytes, callback) {
 		
 		function step3() {
 			return function(status) {
-				if(status == StoreBase.OK) {
+				if(status == RetCodes.OK) {
 					//Log written, we are done
-					callback(StoreBase.OK);
+					callback(RetCodes.OK);
 				}
-				else if(status == StoreBase.AlreadyPresent) {
+				else if(status == RetCodes.AlreadyPresent) {
 					//Someone wrote a new log record meanwhile, so we have to retry the whole process
 					start();
 				}
