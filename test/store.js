@@ -6,8 +6,11 @@ var StoreAWS = require("../src/store-aws.js");
 var storeAWSConfig = require("./store-aws-config.json");
 var RetCodes = require("../src/return-codes.js");
 
-describe("Data store: StoreBase", test(() => new StoreBase()));
-describe("Data store: StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
+
+describe("Data store", function() {
+	describe("StoreBase", test(() => new StoreBase()));
+	describe("StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
+});
 
 
 function test(storeSupplier) {

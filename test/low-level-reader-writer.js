@@ -10,8 +10,10 @@ var storeAWSConfig = require("./store-aws-config.json");
 var RetCodes = require("../src/return-codes.js");
 
 
-describe("Low-level reader/writer on StoreBase", test(() => new StoreBase()));
-describe("Low-level reader/writer on StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
+describe("Low-level reader/writer", function() {
+	describe("StoreBase", test(() => new StoreBase()));
+	describe("StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
+});
 
 
 function test(storeSupplier) {
