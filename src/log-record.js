@@ -1,5 +1,7 @@
 "use strict";
 
+var NodeUtils = require("./node-utils.js");
+
 
 class LogRecord {
 
@@ -144,26 +146,13 @@ function applyWriteBytes(buf) {
 	return newBuf;
 }
 
-function parseEntry(line) {
-	//Line example: F58|20150115T11:12:23.456|File1.txt
-	var parts = line.split("|");
-	var entryType = line.substring(0, 1);
-	var entryName = parts[2];
-	var nodeNumber = parseInt(parts[0].substring(1));
-	var isoTimestamp = parts[1];
-	
-	return { entryType, entryName, nodeNumber, isoTimestamp };
-}
 
 function formatEntry(x) {
 	return x.entryType + x.nodeNumber.toString() + "|" + x.isoTimestamp + "|" + x.entryName;
 }
 
 function parseDirNode(buf) {
-	var str = buf.toString();
-	var lines = str ? buf.toString().split("\n") : [];
-	var entries = lines.map(parseEntry);
-	return entries;
+	return NodeUtils.parseDirectoryNode(buf);
 }
 
 function formatDirNode(entries) {

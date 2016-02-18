@@ -26,7 +26,7 @@ function test(storeSupplier) {
 
 
 function runTests(cfs, store) {
-	it.only("must properly discard all data", function(done) {
+	it("must properly discard all data", function(done) {
 		cfs.discardAll(err => {
 			assert.ifError(err);
 			cfs.list("", (err, list) => {
