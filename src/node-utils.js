@@ -1,5 +1,7 @@
 "use strict";
 
+var readLowLevel = require("./low-level-reader.js");
+
 
 class NodeUtils {
 
@@ -66,6 +68,47 @@ class NodeUtils {
 			});
 		}
 	}
+	
+	static readNode(store, nodeNumber, callback) {
+		//Read the base and the log records
+		//{ base: Buffer, logRecs: [ Buffer, Buffer, ... ] }
+		readLowLevel(store, nodeNumber, (err, data) => {
+			if(err) {
+				callback(err);
+				return;
+			}
+			
+			//Combine the base and the log records
+			var bytes = data.base || new Buffer(0);
+			data.logRecs.forEach(logRecBuf => {
+				var logRec = LogRecord.fromBuffer(logRecBuf);
+				bytes = logRec.applyToNode(bytes);
+			});
+			
+			//At the end, we have the up-to-date situation
+			callback(null, bytes);
+		});
+	}
+	
+	static parseDirectoryNode(buf) {
+		var str = buf.toString();
+		var lines = str ? buf.toString().split("\n") : [];
+		var entries = lines.map(parseEntry);
+		return entries;
+		
+		function parseEntry(line) {
+			//Line example: F58|20150115T11:12:23.456|File1.txt
+			var parts = line.split("|");
+			var entryType = line.substring(0, 1);
+			var entryName = parts[2];
+			var nodeNumber = parseInt(parts[0].substring(1));
+			var isoTimestamp = parts[1];
+			
+			return { entryType, entryName, nodeNumber, isoTimestamp };
+		}
+	}
+
+
 	
 }
 

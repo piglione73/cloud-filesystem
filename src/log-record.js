@@ -84,6 +84,21 @@ class LogRecord {
 		return rec;
 	}
 	
+	applyToNode(buf) {
+		if(this.type == "FSL")
+			return applySetLen.call(this, buf);
+		else if(this.type == "FWB")
+			return applyWriteBytes.call(this, buf);
+		else if(this.type == "DAE")
+			return applyAddEntry.call(this, buf);
+		else if(this.type == "DTE")
+			return applyTouchEntry.call(this, buf);
+		else if(this.type == "DRE")
+			return applyRemoveEntry.call(this, buf);
+		else
+			throw new Error("Invalid log record type: " + JSON.stringify(this));
+	}
+	
 	applyToFileNode(buf) {
 		if(this.type == "FSL")
 			return applySetLen.call(this, buf);
