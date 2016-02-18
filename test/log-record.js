@@ -3,7 +3,7 @@
 var assert = require("assert");
 var LogRecord = require("../src/log-record.js");
 
-describe.only("Log record", function() {
+describe("Log record", function() {
 	it("must serialize/deserialize/apply FileSetLength", function() {
 		var r = LogRecord.createEntry_SetLength(10);
 		testSerialization(r);
@@ -50,6 +50,51 @@ describe.only("Log record", function() {
 		assert.equal(buf2.toString(), "F58|20150115T11:12:23.456|File1.txt\nD58|20160217T15:20:11.123|Dir1", "The buffer must be modified");
 	});
 
+	it("must serialize/deserialize/apply DirectoryTouchEntry", function() {
+		var r = LogRecord.createEntry_AddEntry("File1.txt", "F", 57, "20160115T11:12:23.456");
+		testSerialization(r);
+		var buf = new Buffer("");
+		var buf2 = r.applyToDirectoryNode(buf);
+		assert.equal(buf2.toString(), "F57|20160115T11:12:23.456|File1.txt", "The buffer must be modified");
+
+		r = LogRecord.createEntry_AddEntry("Dir1", "D", 58, "20160217T15:20:11.123");
+		testSerialization(r);
+		var buf = buf2;
+		var buf2 = r.applyToDirectoryNode(buf);
+		assert.equal(buf2.toString(), "F57|20160115T11:12:23.456|File1.txt\nD58|20160217T15:20:11.123|Dir1", "The buffer must be modified");
+
+		r = LogRecord.createEntry_TouchEntry("File1.txt", "F", "20150115T11:12:23.456");
+		testSerialization(r);
+		var buf = buf2;
+		var buf2 = r.applyToDirectoryNode(buf);
+		assert.equal(buf2.toString(), "F57|20150115T11:12:23.456|File1.txt\nD58|20160217T15:20:11.123|Dir1", "The buffer must be modified");
+	});
+
+	it("must serialize/deserialize/apply DirectoryRemoveEntry", function() {
+		var r = LogRecord.createEntry_AddEntry("File1.txt", "F", 57, "20160115T11:12:23.456");
+		testSerialization(r);
+		var buf = new Buffer("");
+		var buf2 = r.applyToDirectoryNode(buf);
+		assert.equal(buf2.toString(), "F57|20160115T11:12:23.456|File1.txt", "The buffer must be modified");
+
+		r = LogRecord.createEntry_AddEntry("Dir1", "D", 58, "20160217T15:20:11.123");
+		testSerialization(r);
+		var buf = buf2;
+		var buf2 = r.applyToDirectoryNode(buf);
+		assert.equal(buf2.toString(), "F57|20160115T11:12:23.456|File1.txt\nD58|20160217T15:20:11.123|Dir1", "The buffer must be modified");
+
+		r = LogRecord.createEntry_RemoveEntry("File1.txt", "F");
+		testSerialization(r);
+		var buf = buf2;
+		var buf2 = r.applyToDirectoryNode(buf);
+		assert.equal(buf2.toString(), "D58|20160217T15:20:11.123|Dir1", "The buffer must be modified");
+
+		r = LogRecord.createEntry_RemoveEntry("Dir1", "D");
+		testSerialization(r);
+		var buf = buf2;
+		var buf2 = r.applyToDirectoryNode(buf);
+		assert.equal(buf2.toString(), "", "The buffer must be modified");
+	});
 });
 
 

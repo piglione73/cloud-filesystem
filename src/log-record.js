@@ -28,14 +28,21 @@ class LogRecord {
 		return rec;
 	}
 	
-	static createEntry_TouchEntry() {
+	static createEntry_TouchEntry(entryName, entryType, isoTimestamp) {
 		var rec = new LogRecord();
 		rec.type = "DTE";
+		rec.entryName = entryName;
+		rec.entryType = entryType;
+		rec.isoTimestamp = isoTimestamp;
+		return rec;
 	}
 	
-	static createEntry_RemoveEntry() {
+	static createEntry_RemoveEntry(entryName, entryType) {
 		var rec = new LogRecord();
 		rec.type = "DRE";
+		rec.entryName = entryName;
+		rec.entryType = entryType;
+		return rec;
 	}
 	
 	toBuffer() {
@@ -122,32 +129,78 @@ function applyWriteBytes(buf) {
 	return newBuf;
 }
 
-function formatEntry(rec) {
-	return rec.entryType + rec.nodeNumber.toString() + "|" + rec.isoTimestamp + "|" + rec.entryName;
+function parseEntry(line) {
+	//Line example: F58|20150115T11:12:23.456|File1.txt
+	var parts = line.split("|");
+	var entryType = line.substring(0, 1);
+	var entryName = parts[2];
+	var nodeNumber = parseInt(parts[0].substring(1));
+	var isoTimestamp = parts[1];
+	
+	return { entryType, entryName, nodeNumber, isoTimestamp };
 }
+
+function formatEntry(x) {
+	return x.entryType + x.nodeNumber.toString() + "|" + x.isoTimestamp + "|" + x.entryName;
+}
+
+function parseDirNode(buf) {
+	var str = buf.toString();
+	var lines = str ? buf.toString().split("\n") : [];
+	var entries = lines.map(parseEntry);
+	return entries;
+}
+
+function formatDirNode(entries) {
+	var lines = entries.map(formatEntry);
+	var str = lines.join("\n");
+	return new Buffer(str);
+}
+
 
 function applyAddEntry(buf) {
-	var lines = buf.toString().split("\n");
-	var found = false;
-	for(var i = 0; i < lines.length; i++) {
-		//Line example: F58|20150115T11:12:23.456|File1.txt
-		var line = lines[i];
-		var parts = line.split("|");
-		var entryType = line.substring(0, 1);
-		var entryName = parts[2];
-		if(this.entryType == entryType && this.entryName == entryName) {
-			//Found: change it
-			lines[i] = formatEntry(this);
-			found = true;
-			break;
-		}
+	var entries = parseDirNode(buf);
+	var index = entries.findIndex(x => x.entryName == this.entryName && x.entryType == this.entryType);
+	if(index == -1) {
+		//Add
+		entries.push({
+			entryName: this.entryName,
+			entryType: this.entryType,
+			nodeNumber: this.nodeNumber,
+			isoTimestamp: this.isoTimestamp
+		});
+	}
+	else {
+		//Modify
+		var e = entries[index];
+		e.nodeNumber = this.nodeNumber;
+		e.isoTimestamp = this.isoTimestamp;
 	}
 	
-	if(!found)
-		lines.push(formatEntry(this));
-		
-	return new Buffer(lines.join("\n"));
+	return formatDirNode(entries);
 }
 
+function applyRemoveEntry(buf) {
+	var entries = parseDirNode(buf);
+	var index = entries.findIndex(x => x.entryName == this.entryName && x.entryType == this.entryType);
+	if(index != -1) {
+		//Remove
+		entries.splice(index, 1);
+	}
+	
+	return formatDirNode(entries);
+}
+
+function applyTouchEntry(buf) {
+	var entries = parseDirNode(buf);
+	var index = entries.findIndex(x => x.entryName == this.entryName && x.entryType == this.entryType);
+	if(index != -1) {
+		//Modify
+		var e = entries[index];
+		e.isoTimestamp = this.isoTimestamp;
+	}
+	
+	return formatDirNode(entries);
+}
 
 module.exports = LogRecord;
