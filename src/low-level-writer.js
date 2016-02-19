@@ -1,9 +1,5 @@
 "use strict";
 
-var randomstring = require("randomstring");
-var StoreBase = require("./store-base.js");
-var Data = require("./low-level-data.js");
-var RetCodes = require("./return-codes.js");
 
 function write(store, key, bytes, callback) {
 	/*
@@ -132,4 +128,8 @@ function write(store, key, bytes, callback) {
 }
 
 module.exports = write;
+var randomstring = require("randomstring");
+var StoreBase = require("./store-base.js");
+var Data = require("./low-level-data.js");
+var RetCodes = require("./return-codes.js");
 

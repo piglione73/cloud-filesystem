@@ -1,6 +1,5 @@
 "use strict";
 
-var RetCodes = require("./return-codes.js");
 
 /*
 This is the reference implementation of the underlying store. It stores bytes and log information in memory.
@@ -127,3 +126,4 @@ class StoreBase {
 
 
 module.exports = StoreBase;
+var RetCodes = require("./return-codes.js");

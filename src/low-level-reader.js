@@ -1,8 +1,5 @@
 "use strict";
 
-var StoreBase = require("./store-base.js");
-var Data = require("./low-level-data.js");
-var RetCodes = require("./return-codes.js");
 
 function read(store, key, callback) {
 	/*
@@ -98,4 +95,7 @@ function read(store, key, callback) {
 }
 
 module.exports = read;
+var StoreBase = require("./store-base.js");
+var Data = require("./low-level-data.js");
+var RetCodes = require("./return-codes.js");
 

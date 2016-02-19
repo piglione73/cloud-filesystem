@@ -1,6 +1,5 @@
 "use strict";
 
-var NodeUtils = require("./node-utils.js");
 
 
 class LogRecord {
@@ -207,4 +206,6 @@ function applyTouchEntry(buf) {
 	return formatDirNode(entries);
 }
 
+
 module.exports = LogRecord;
+var NodeUtils = require("./node-utils.js");

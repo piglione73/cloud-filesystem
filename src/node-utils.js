@@ -1,10 +1,15 @@
 "use strict";
 
-var readLowLevel = require("./low-level-reader.js");
-
 
 class NodeUtils {
 
+	static createUniqueNodeNumber() {
+		return randomstring.generate({
+			length: 20,
+			charset: 'hex'
+		});
+	}
+	
 	static getNodeNumber(store, nodeType, path, callback) {
 		if(nodeType != "F" && nodeType != "D") {
 			callback(new Error("The node type must be F or D."));
@@ -12,7 +17,7 @@ class NodeUtils {
 		}
 		
 		//The first N-1 parts are directories, the last part is nodeType
-		var pathParts = splitPath(path);
+		var pathParts = PathUtils.splitPath(path);
 		
 		//Exceptions
 		if(pathParts.length == 0) {
@@ -48,11 +53,11 @@ class NodeUtils {
 				}
 				
 				var list = NodeUtils.parseDirectoryNode(node);
-				
+
 				//Look for pathParts[0] in list
 				var partType = pathParts.length == 1? nodeType : "D";
 				var partName = pathParts[0];
-				var entry = list.find(x => x.name == partName && x.type == partType);
+				var entry = list.find(x => x.entryName == partName && x.entryType == partType);
 				
 				if(entry) {
 					//Found. Proceed to next level recursively
@@ -62,7 +67,7 @@ class NodeUtils {
 				}
 				else {
 					//Not found
-					callback(new Error("Path " + path + " not found."));
+					callback(null, null);
 					return;
 				}
 			});
@@ -101,7 +106,7 @@ class NodeUtils {
 			var parts = line.split("|");
 			var entryType = line.substring(0, 1);
 			var entryName = parts[2];
-			var nodeNumber = parseInt(parts[0].substring(1));
+			var nodeNumber = parts[0].substring(1);
 			var isoTimestamp = parts[1];
 			
 			return { entryType, entryName, nodeNumber, isoTimestamp };
@@ -112,9 +117,11 @@ class NodeUtils {
 	
 }
 
-function splitPath(path) {
-	return (path || "").replace(/\\/g, "/").split("/").filter(x => x != "");
-}
-
 
 module.exports = NodeUtils;
+
+var readLowLevel = require("./low-level-reader.js");
+var PathUtils = require("./path-utils.js");
+var randomstring = require("randomstring");
+var LogRecord = require("./log-record.js");
+

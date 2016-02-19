@@ -287,6 +287,8 @@ function runTests(cfs, store) {
 	
 	function runOnCleanFS(action) {
 		return function(done) {
+			this.timeout(60000);
+			
 			cfs.discardAll(err => {
 				assert.ifError(err);
 				cfs.list("/", (err, list) => {

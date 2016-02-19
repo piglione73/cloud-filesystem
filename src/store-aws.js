@@ -1,7 +1,5 @@
 "use strict";
 
-var AWS = require("aws-sdk"); 
-var RetCodes = require("./return-codes.js");
 
 /*
 This is a store based on AWS S3 and DynamoDB.
@@ -200,3 +198,5 @@ class StoreAWS {
 
 
 module.exports = StoreAWS;
+var AWS = require("aws-sdk"); 
+var RetCodes = require("./return-codes.js");
