@@ -27,6 +27,7 @@ function test(storeSupplier) {
 
 function runTests(cfs, store) {
 	it("must properly discard all data", function(done) {
+	    this.timeout(10000);
 		cfs.discardAll(err => {
 			assert.ifError(err);
 			cfs.list("", (err, list) => {
