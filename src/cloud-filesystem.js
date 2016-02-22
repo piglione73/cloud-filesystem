@@ -95,6 +95,11 @@ class CloudFS {
 					//Add the new directory entry to the listing
 					var logRecord = LogRecord.createEntry_AddEntry(currentPathPart, "D", newNodeNumber);
 					writeLowLevel(self.store, currentNodeNumber, logRecord.toBuffer(), err => {
+						if(err) {
+							callback(err);
+							return;
+						}
+						
 						//Directory created in the listing. Let's proceed to next path part.
 						currentNodeNumber = newNodeNumber;
 						nextPart();
@@ -114,7 +119,31 @@ class CloudFS {
 	}
 
 	removeDirectory(path, callback) {
-		throw new Error("TODO");
+		var self = this;
+		
+		//Get the parent path
+		var parentPath = PathUtils.getParent(path);
+		var dirName = PathUtils.getLastPart(path);
+		
+		//Get the node number associated to the given parent path
+		NodeUtils.getNodeNumber(self.store, "D", parentPath, (err, nodeNumber) => {
+			if(err) {
+				callback(err);
+				return;
+			}
+			
+			//Write a log record that removes "dirName" from nodeNumber
+			var logRecord = LogRecord.createEntry_RemoveEntry(dirName, "D");
+			writeLowLevel(self.store, nodeNumber, logRecord.toBuffer(), err => {
+				if(err) {
+					callback(err);
+					return;
+				}
+				
+				//End
+				callback();
+			});
+		});
 	}
 	
 	openFile(path, mode, callback) {
