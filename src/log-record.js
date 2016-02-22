@@ -19,22 +19,20 @@ class LogRecord {
 		return rec;
 	}
 	
-	static createEntry_AddEntry(entryName, entryType, nodeNumber, isoTimestamp) {
+	static createEntry_AddEntry(entryName, entryType, nodeNumber) {
 		var rec = new LogRecord();
 		rec.type = "DAE";
 		rec.entryName = entryName;
 		rec.entryType = entryType;
 		rec.nodeNumber = nodeNumber;
-		rec.isoTimestamp = isoTimestamp;
 		return rec;
 	}
 	
-	static createEntry_TouchEntry(entryName, entryType, isoTimestamp) {
+	static createEntry_TouchEntry(entryName, entryType) {
 		var rec = new LogRecord();
 		rec.type = "DTE";
 		rec.entryName = entryName;
 		rec.entryType = entryType;
-		rec.isoTimestamp = isoTimestamp;
 		return rec;
 	}
 	
@@ -54,8 +52,7 @@ class LogRecord {
 			to: this.targetOffset,
 			en: this.entryName,
 			et: this.entryType,
-			nn: this.nodeNumber,
-			ts: this.isoTimestamp
+			nn: this.nodeNumber
 		});
 		
 		return new Buffer(json);
@@ -79,8 +76,6 @@ class LogRecord {
 			rec.entryType = obj.et;
 		if(obj.nn !== undefined)
 			rec.nodeNumber = obj.nn;
-		if(obj.ts !== undefined)
-			rec.isoTimestamp = obj.ts;
 			
 		return rec;
 	}
@@ -147,7 +142,7 @@ function applyWriteBytes(buf) {
 
 
 function formatEntry(x) {
-	return x.entryType + x.nodeNumber.toString() + "|" + x.isoTimestamp + "|" + x.entryName;
+	return x.entryType + x.nodeNumber.toString() + "|" + x.entryName;
 }
 
 function parseDirNode(buf) {
@@ -163,7 +158,7 @@ function formatDirNode(entries) {
 
 function applyAddEntry(buf) {
 	var entries = parseDirNode(buf);
-	var index = entries.findIndex(x => x.entryName == this.entryName && x.entryType == this.entryType);
+	var index = entries.findIndex(x => x.entryName == this.entryName);
 	if(index == -1) {
 		//Add
 		entries.push({
@@ -177,7 +172,7 @@ function applyAddEntry(buf) {
 		//Modify
 		var e = entries[index];
 		e.nodeNumber = this.nodeNumber;
-		e.isoTimestamp = this.isoTimestamp;
+		e.entryType = this.entryType;
 	}
 	
 	return formatDirNode(entries);
@@ -185,7 +180,7 @@ function applyAddEntry(buf) {
 
 function applyRemoveEntry(buf) {
 	var entries = parseDirNode(buf);
-	var index = entries.findIndex(x => x.entryName == this.entryName && x.entryType == this.entryType);
+	var index = entries.findIndex(x => x.entryName == this.entryName);
 	if(index != -1) {
 		//Remove
 		entries.splice(index, 1);
@@ -196,13 +191,8 @@ function applyRemoveEntry(buf) {
 
 function applyTouchEntry(buf) {
 	var entries = parseDirNode(buf);
-	var index = entries.findIndex(x => x.entryName == this.entryName && x.entryType == this.entryType);
-	if(index != -1) {
-		//Modify
-		var e = entries[index];
-		e.isoTimestamp = this.isoTimestamp;
-	}
 	
+	//No operation
 	return formatDirNode(entries);
 }
 

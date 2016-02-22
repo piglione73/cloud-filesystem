@@ -102,14 +102,13 @@ class NodeUtils {
 		return entries;
 		
 		function parseEntry(line) {
-			//Line example: F58|20150115T11:12:23.456|File1.txt
+			//Line example: F58|File1.txt
 			var parts = line.split("|");
 			var entryType = line.substring(0, 1);
-			var entryName = parts[2];
+			var entryName = parts[1];
 			var nodeNumber = parts[0].substring(1);
-			var isoTimestamp = parts[1];
 			
-			return { entryType, entryName, nodeNumber, isoTimestamp };
+			return { entryType, entryName, nodeNumber };
 		}
 	}
 

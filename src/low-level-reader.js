@@ -47,7 +47,7 @@ function read(store, key, callback) {
 			else if(status == RetCodes.OK) {
 				//At least one log record found. We must read from lowestIndex (excluded) to highestIndex (included)
 				//Due to eventual consistency issues, those log records might not be visible yet in the store.
-				//However, we are 100% sure they eventually be visible, so we wait until we manage to read them all.
+				//However, we are 100% sure they will eventually be visible, so we wait until we manage to read them all.
 				//We start from the highest and we follow the linked list of log records backwards.
 				readLogRecord(base, highestIndex, highestID, lowestIndex, []);
 			}
