@@ -285,11 +285,40 @@ class CloudFS {
 	}
 	
 	writeFile(fd, destOffset, buffer, callback) {
-		throw new Error("TODO");
-	} 
+		if(fd.nodeNumber === null || fd.nodeNumber === undefined) {
+			callback(new Error("The file is closed."));
+			return;
+		}
+		
+		//Add a log record that writes the bytes
+		var logRecord = LogRecord.createEntry_WriteBytes(buffer, destOffset);
+		writeLowLevel(this.store, fd.nodeNumber, logRecord.toBuffer(), err => {
+			if(err) {
+				callback(err);
+				return;
+			}
+
+			callback();
+		});
+	}
 	
 	readFile(fd, startOffset, length, callback) {
-		throw new Error("TODO");
+		if(fd.nodeNumber === null || fd.nodeNumber === undefined) {
+			callback(new Error("The file is closed."));
+			return;
+		}
+		
+		//Read the node
+		NodeUtils.readNode(this.store, fd.nodeNumber, (err, node) => {
+			if(err) {
+				callback(err);
+				return;
+			}
+			
+			//Extract from startOffset
+			var data = node.slice(startOffset || 0, length > 0? startOffset + length : node.length);
+			callback(null, data);
+		});
 	}
 	
 }

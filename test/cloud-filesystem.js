@@ -205,8 +205,7 @@ function runTests(cfs, store) {
 									assert.ifError(err);
 									assert.equal(list.length, 1);
 									assert.equal(list[0].name, "a.txt", "/ must contain a.txt");
-									assert.equal(list[0].isFile, true, "a.txt be a file");
-									assert.equal(list[0].length, 9, "a.txt must be 9 bytes long");
+									assert.equal(list[0].isFile, true, "a.txt must be a file");
 									
 									done();
 								});
