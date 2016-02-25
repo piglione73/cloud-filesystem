@@ -28,19 +28,25 @@ class LogRecord {
 		return rec;
 	}
 	
-	static createEntry_TouchEntry(entryName, entryType) {
+	static createEntry_TouchEntry(entryName) {
 		var rec = new LogRecord();
 		rec.type = "DTE";
 		rec.entryName = entryName;
-		rec.entryType = entryType;
 		return rec;
 	}
 	
-	static createEntry_RemoveEntry(entryName, entryType) {
+	static createEntry_RemoveEntry(entryName) {
 		var rec = new LogRecord();
 		rec.type = "DRE";
 		rec.entryName = entryName;
-		rec.entryType = entryType;
+		return rec;
+	}
+	
+	static createEntry_RenameEntry(entryName, newEntryName){
+		var rec = new LogRecord();
+		rec.type = "DNE";
+		rec.entryName = entryName;
+		rec.newEntryName = newEntryName;
 		return rec;
 	}
 	
@@ -51,6 +57,7 @@ class LogRecord {
 			l: this.length,
 			to: this.targetOffset,
 			en: this.entryName,
+			nen: this.newEntryName,
 			et: this.entryType,
 			nn: this.nodeNumber
 		});
@@ -72,6 +79,8 @@ class LogRecord {
 			rec.bytes = new Buffer(obj.b.data);
 		if(obj.en !== undefined)
 			rec.entryName = obj.en;
+		if(obj.nen !== undefined)
+			rec.newEntryName = obj.nen;
 		if(obj.et !== undefined)
 			rec.entryType = obj.et;
 		if(obj.nn !== undefined)
@@ -91,6 +100,8 @@ class LogRecord {
 			return applyTouchEntry.call(this, buf);
 		else if(this.type == "DRE")
 			return applyRemoveEntry.call(this, buf);
+		else if(this.type == "DNE")
+			return applyRenameEntry.call(this, buf);
 		else
 			throw new Error("Invalid log record type: " + JSON.stringify(this));
 	}
@@ -111,6 +122,8 @@ class LogRecord {
 			return applyTouchEntry.call(this, buf);
 		else if(this.type == "DRE")
 			return applyRemoveEntry.call(this, buf);
+		else if(this.type == "DNE")
+			return applyRenameEntry.call(this, buf);
 		else
 			throw new Error("Invalid log record for a directory node: " + JSON.stringify(this));
 	}
@@ -184,6 +197,18 @@ function applyRemoveEntry(buf) {
 	if(index != -1) {
 		//Remove
 		entries.splice(index, 1);
+	}
+	
+	return formatDirNode(entries);
+}
+
+function applyRenameEntry(buf) {
+	var entries = parseDirNode(buf);
+	var index = entries.findIndex(x => x.entryName == this.entryName);
+	if(index != -1) {
+		//Modify
+		var e = entries[index];
+		e.entryName = this.newEntryName;
 	}
 	
 	return formatDirNode(entries);

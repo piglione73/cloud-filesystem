@@ -110,11 +110,35 @@ class CloudFS {
 		}
 	}
 	
-	renameDirectory(path, newName, callback) {
-		throw new Error("TODO");
+	rename(path, newName, callback) {
+		var self = this;
+		
+		//Get the parent path
+		var parentPath = PathUtils.getParent(path);
+		var entryName = PathUtils.getLastPart(path);
+		
+		//Get the node number associated to the given parent path
+		NodeUtils.getNodeNumber(self.store, "D", parentPath, (err, nodeNumber) => {
+			if(err) {
+				callback(err);
+				return;
+			}
+			
+			//Write a log record that renames "entryName" to "newName"
+			var logRecord = LogRecord.createEntry_RenameEntry(entryName, newName);
+			writeLowLevel(self.store, nodeNumber, logRecord.toBuffer(), err => {
+				if(err) {
+					callback(err);
+					return;
+				}
+				
+				//End
+				callback();
+			});
+		});
 	}
 	
-	moveDirectory(path, newPath, callback) {
+	move(path, newPath, callback) {
 		throw new Error("TODO");
 	}
 

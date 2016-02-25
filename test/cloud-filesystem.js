@@ -10,7 +10,7 @@ var storeAWSConfig = require("./store-aws-config.json");
 
 
 describe("Cloud Filesystem", function() {
-	describe("StoreBase", test(() => new StoreBase()));
+	describe.only("StoreBase", test(() => new StoreBase()));
 	describe("StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
 });
 
@@ -87,7 +87,7 @@ function runTests(cfs, store) {
 			assert.ifError(err);
 			cfs.createDirectory("/d/e", err => {
 				assert.ifError(err);
-				cfs.renameDirectory("/a", "b", err => {
+				cfs.rename("/a", "b", err => {
 					assert.ifError(err);
 					cfs.list("/", (err, list) => {
 						assert.ifError(err);
@@ -95,7 +95,7 @@ function runTests(cfs, store) {
 						assert.ok(list.find(x => x.name == "b"), "/ must contain b");
 						assert.ok(list.find(x => x.name == "d"), "/ must contain d");
 						
-						cfs.renameDirectory("/d/b", "bb", err => {
+						cfs.rename("/b/b", "bb", err => {
 							assert.ifError(err);
 							cfs.list("/", (err, list) => {
 								assert.ifError(err);
@@ -103,10 +103,10 @@ function runTests(cfs, store) {
 								assert.ok(list.find(x => x.name == "b"), "/ must contain b");
 								assert.ok(list.find(x => x.name == "d"), "/ must contain d");
 								
-								cfs.list("/d", (err, list) => {
+								cfs.list("/b", (err, list) => {
 									assert.ifError(err);
 									assert.equal(list.length, 1);
-									assert.ok(list.find(x => x.name == "bb"), "/d must contain bb");
+									assert.ok(list.find(x => x.name == "bb"), "/b must contain bb");
 									
 									done();
 								});
@@ -121,7 +121,7 @@ function runTests(cfs, store) {
 	it("must move directories", runOnCleanFS(done => {
 		cfs.createDirectory("/a/b/c", err => {
 			assert.ifError(err);
-			cfs.moveDirectory("a/b", "/", err => {
+			cfs.move("a/b", "/", err => {
 				assert.ifError(err);
 				cfs.list("/", (err, list) => {
 					assert.ifError(err);
@@ -224,7 +224,7 @@ function runTests(cfs, store) {
 			cfs.closeFile(fd, err => {
 				assert.ifError(err);
 				
-				cfs.renameFile("/a.txt", "b.txt", err => {
+				cfs.rename("/a.txt", "b.txt", err => {
 					assert.ifError(err);
 					cfs.list("/", (err, list) => {
 						assert.ifError(err);
@@ -245,7 +245,7 @@ function runTests(cfs, store) {
 				cfs.closeFile(fd, err => {
 					assert.ifError(err);
 					
-					cfs.moveFile("/a.txt", "/a", err => {
+					cfs.move("/a.txt", "/a", err => {
 						assert.ifError(err);
 						cfs.list("/", (err, list) => {
 							assert.ifError(err);
