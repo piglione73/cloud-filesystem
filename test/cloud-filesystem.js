@@ -10,7 +10,7 @@ var storeAWSConfig = require("./store-aws-config.json");
 
 
 describe("Cloud Filesystem", function() {
-	describe.only("StoreBase", test(() => new StoreBase()));
+	describe("StoreBase", test(() => new StoreBase()));
 	describe("StoreAWS", test(() => new StoreAWS(storeAWSConfig.bucketName, storeAWSConfig.bucketRegion, storeAWSConfig.bucketPrefix, storeAWSConfig.tableName, storeAWSConfig.tableRegion)));
 });
 
@@ -149,7 +149,7 @@ function runTests(cfs, store) {
 	it("must remove directories", runOnCleanFS(done => {
 		cfs.createDirectory("/a/b/c", err => {
 			assert.ifError(err);
-			cfs.removeDirectory("a/b/c", err => {
+			cfs.remove("a/b/c", err => {
 				assert.ifError(err);
 				cfs.list("/a/b", (err, list) => {
 					assert.ifError(err);
@@ -272,7 +272,7 @@ function runTests(cfs, store) {
 			cfs.closeFile(fd, err => {
 				assert.ifError(err);
 				
-				cfs.removeFile("/a.txt", err => {
+				cfs.remove("/a.txt", err => {
 					assert.ifError(err);
 					cfs.list("/", (err, list) => {
 						assert.ifError(err);

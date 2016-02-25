@@ -82,7 +82,7 @@ class NodeUtils {
 				callback(err);
 				return;
 			}
-			
+
 			//Combine the base and the log records
 			var bytes = data.base || new Buffer(0);
 			data.logRecs.forEach(logRecBuf => {

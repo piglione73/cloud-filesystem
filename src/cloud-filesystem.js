@@ -138,16 +138,12 @@ class CloudFS {
 		});
 	}
 	
-	move(path, newPath, callback) {
-		throw new Error("TODO");
-	}
-
-	removeDirectory(path, callback) {
+	move(path, newContainerPath, callback) {
 		var self = this;
 		
 		//Get the parent path
 		var parentPath = PathUtils.getParent(path);
-		var dirName = PathUtils.getLastPart(path);
+		var entryName = PathUtils.getLastPart(path);
 		
 		//Get the node number associated to the given parent path
 		NodeUtils.getNodeNumber(self.store, "D", parentPath, (err, nodeNumber) => {
@@ -156,8 +152,70 @@ class CloudFS {
 				return;
 			}
 			
-			//Write a log record that removes "dirName" from nodeNumber
-			var logRecord = LogRecord.createEntry_RemoveEntry(dirName, "D");
+			//Read it
+			NodeUtils.readNode(this.store, nodeNumber, (err, node) => {
+				if(err) {
+					callback(err);
+					return;
+				}
+				
+				//Parse it
+				var list = NodeUtils.parseDirectoryNode(node);
+				var entry = list.find(x => x.entryName == entryName);
+				if(!entry) {
+					//Not found. End.
+					callback();
+					return;
+				}
+				
+				//Get the node number associated to the given new container path
+				NodeUtils.getNodeNumber(self.store, "D", newContainerPath, (err, destNodeNumber) => {
+					if(err) {
+						callback(err);
+						return;
+					}
+
+					//Write a log record that adds the new entry to destNodeNumber
+					var logRecord = LogRecord.createEntry_AddEntry(entry.entryName, entry.entryType, entry.nodeNumber);
+					writeLowLevel(self.store, destNodeNumber, logRecord.toBuffer(), err => {
+						if(err) {
+							callback(err);
+							return;
+						}
+						
+						//Write a log record that removes the old entry from nodeNumber
+						var logRecord = LogRecord.createEntry_RemoveEntry(entry.entryName);
+						writeLowLevel(self.store, nodeNumber, logRecord.toBuffer(), err => {
+							if(err) {
+								callback(err);
+								return;
+							}
+						
+							//End
+							callback();
+						});
+					});
+				});
+			});
+		});
+	}
+
+	remove(path, callback) {
+		var self = this;
+		
+		//Get the parent path
+		var parentPath = PathUtils.getParent(path);
+		var entryName = PathUtils.getLastPart(path);
+		
+		//Get the node number associated to the given parent path
+		NodeUtils.getNodeNumber(self.store, "D", parentPath, (err, nodeNumber) => {
+			if(err) {
+				callback(err);
+				return;
+			}
+			
+			//Write a log record that removes "entryName" from nodeNumber
+			var logRecord = LogRecord.createEntry_RemoveEntry(entryName, "D");
 			writeLowLevel(self.store, nodeNumber, logRecord.toBuffer(), err => {
 				if(err) {
 					callback(err);
@@ -171,11 +229,59 @@ class CloudFS {
 	}
 	
 	openFile(path, mode, callback) {
-		throw new Error("TODO");
+		var self = this;
+		
+		//Get the parent path
+		var parentPath = PathUtils.getParent(path);
+		var entryName = PathUtils.getLastPart(path);
+		
+		//Get the node number associated to the given parent path
+		NodeUtils.getNodeNumber(self.store, "D", parentPath, (err, nodeNumber) => {
+			if(err) {
+				callback(err);
+				return;
+			}
+			
+			//Read it
+			NodeUtils.readNode(this.store, nodeNumber, (err, node) => {
+				if(err) {
+					callback(err);
+					return;
+				}
+				
+				//Parse it
+				var list = NodeUtils.parseDirectoryNode(node);
+				var entry = list.find(x => x.entryName == entryName);
+				
+				if(entry) {
+					//Found. Open it.
+					callback(null, { nodeNumber: x.nodeNumber });
+					return;
+				}
+				else {
+					//Not found. Create a new node
+					var newNodeNumber = NodeUtils.createUniqueNodeNumber();
+
+					//Add the new directory entry to the listing
+					var logRecord = LogRecord.createEntry_AddEntry(entryName, "F", newNodeNumber);
+					writeLowLevel(self.store, nodeNumber, logRecord.toBuffer(), err => {
+						if(err) {
+							callback(err);
+							return;
+						}
+						
+						//Directory entry created in the listing. Let's now open the file
+						callback(null, { nodeNumber: newNodeNumber });
+						return;
+					});
+				}
+			});
+		});
 	}
 	
 	closeFile(fd, callback) {
-		throw new Error("TODO");
+		delete fd.nodeNumber;
+		callback();
 	}
 	
 	writeFile(fd, destOffset, buffer, callback) {
